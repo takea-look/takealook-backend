@@ -8,7 +8,7 @@
 
 ```bash
 # 저장소 클론 (처음 클론하는 경우)
-git clone --recurse-submodules https://github.com/takea-look/takealook-android.git
+git clone --recurse-submodules https://github.com/takea-look/takealook-backend.git
 
 # 또는 이미 클론한 경우
 cd takealook-android
