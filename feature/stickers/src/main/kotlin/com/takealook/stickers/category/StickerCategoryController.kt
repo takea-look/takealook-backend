@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/icon-categories")
+@RequestMapping("/sticker-categories")
 class StickerCategoryController @Autowired constructor(
     private val stickerCategoryRepository: StickerCategoryRepository
 ) {
