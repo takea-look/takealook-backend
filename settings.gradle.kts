@@ -19,7 +19,7 @@ dependencyResolutionManagement {
 
 
 include(":app")
-include(":feature:icons")
+include(":feature:stickers")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 

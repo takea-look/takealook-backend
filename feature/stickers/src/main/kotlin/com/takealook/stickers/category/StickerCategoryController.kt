@@ -1,4 +1,4 @@
-package com.takealook.icons.category
+package com.takealook.stickers.category
 
 import kotlinx.coroutines.flow.toList
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,20 +11,20 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/icon-categories")
-class IconCategoryController @Autowired constructor(
-    private val iconCategoryRepository: IconCategoryRepository
+class StickerCategoryController @Autowired constructor(
+    private val stickerCategoryRepository: StickerCategoryRepository
 ) {
 
     @PostMapping
-    suspend fun createCategory(@RequestBody request: IconCategoryCreation): ResponseEntity<IconCategory> {
-        val category = IconCategory(name = request.name, thumbnailUrl = request.thumbnailUrl)
-        val savedCategory = iconCategoryRepository.save(category)
+    suspend fun createCategory(@RequestBody request: StickerCategoryCreation): ResponseEntity<StickerCategory> {
+        val category = StickerCategory(name = request.name, thumbnailUrl = request.thumbnailUrl)
+        val savedCategory = stickerCategoryRepository.save(category)
         return ResponseEntity.ok(savedCategory)
     }
 
     @GetMapping
-    suspend fun getAllCategories(): ResponseEntity<List<IconCategory>> {
-        val categories = iconCategoryRepository.findAll()
+    suspend fun getAllCategories(): ResponseEntity<List<StickerCategory>> {
+        val categories = stickerCategoryRepository.findAll()
         return ResponseEntity.ok(categories.toList())
     }
 }

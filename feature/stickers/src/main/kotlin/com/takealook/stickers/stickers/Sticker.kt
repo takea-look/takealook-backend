@@ -1,10 +1,10 @@
-package com.takealook.icons.icon
+package com.takealook.stickers.stickers
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 
-@Table("icons")
-data class Icon(
+@Table("stickers")
+data class Sticker(
     @Id val id: Int? = null,
     val name: String,
     val iconUrl: String,
