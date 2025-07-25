@@ -1,6 +1,6 @@
-package com.takealook.icons.icon
+package com.takealook.stickers.stickers
 
-data class IconCreation(
+data class StickerCreation(
     val name: String,
     val iconUrl: String,
     val thumbnailUrl: String,

@@ -6,7 +6,7 @@ group = "my.takealook"
 version = "0.0.1"
 
 dependencies {
-    implementation(projects.feature.icons)
+    implementation(projects.feature.stickers)
 }
 
 tasks.withType<Test> {
