@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            docker pull tklcat/takealook-backend:${{ github.ref_name }}
-            docker stop app || true
-            docker rm app || true
-            docker run -d --name app -p 8080:8080 tklcat/takealook-backend:${{ github.ref_name }}
+            sudo docker pull tklcat/takealook-backend:${{ github.ref_name }}
+            sudo docker stop app || true
+            sudo docker rm app || true
+            sudo docker run -d --name app -p 8080:8080 tklcat/takealook-backend:${{ github.ref_name }}
