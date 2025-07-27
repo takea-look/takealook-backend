@@ -41,4 +41,8 @@ jobs:
             sudo docker pull tklcat/takealook-backend:${{ github.ref_name }}
             sudo docker stop app || true
             sudo docker rm app || true
-            sudo docker run -d --name app -p 8080:8080 tklcat/takealook-backend:${{ github.ref_name }}
+            sudo docker run -d --name app -p 8080:8080 \
+              -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
+              -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+              -e DB_URL='${{ secrets.DB_URL }}' \
+              tklcat/takealook-backend:${{ github.ref_name }} >> tkl.log 2>&1 &
