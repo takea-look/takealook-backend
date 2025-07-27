@@ -23,3 +23,13 @@ git submodule update --init --recursive
 ```bash
 git submodule update --remote --recursive
 ```
+
+## install application via Docker
+```sh
+docker pull tklcat/takealook-backend:latest
+docker run --name app -p 8080:8080 \
+    -e DB_USERNAME=ENTER_YOUR_POSTGRESQL_USERNAME \
+    -e DB_PASSWORD=ENTER_YOUR_POSTGRESQL_PASSWORD \
+    -e DB_URL=ENTER_YOUR_POSTGRESQL_DB_URL \
+    takealook-backend:latest > tkl.log 2<&1 &
+```
