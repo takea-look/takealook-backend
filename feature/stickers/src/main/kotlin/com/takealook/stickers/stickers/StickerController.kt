@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -28,8 +29,14 @@ class StickerController @Autowired constructor(
     }
 
     @GetMapping
-    suspend fun getAllIcons(): ResponseEntity<List<Sticker>> {
-        val icons = iconRepository.findAll()
+    suspend fun getIcons(
+        @RequestParam(required = false) categoryId: Long?
+    ): ResponseEntity<List<Sticker>> {
+        val icons = if (categoryId != null) {
+            iconRepository.findByCategoryId(categoryId)
+        } else {
+            iconRepository.findAll()
+        }
         return ResponseEntity.ok(icons.toList())
     }
 }
