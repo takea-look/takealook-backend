@@ -24,7 +24,29 @@ git submodule update --init --recursive
 git submodule update --remote --recursive
 ```
 
-## install application via Docker
+## 사전 준비물
+### 1. postgresSQL 설치 및 user 권한 설정 필요
+```
+brew install postgresql
+brew services start postgresql
+```
+
+```sql
+-- 사용자 생성
+CREATE USER admin WITH PASSWORD 'adminpass';
+
+-- 데이터베이스 생성
+CREATE DATABASE takealook;
+
+-- 권한 부여
+GRANT ALL PRIVILEGES ON DATABASE takealook TO admin;
+```
+
+### 2. DDL 입력
+본 프로젝트는 webflux + r2dbc 기반의 프로젝트라 ddl을 직접 입력해주어야합니다.  
+[schema.sql](https://github.com/takea-look/takealook-backend/blob/main/app/src/main/resources/schema.sql)을 실행해주시면됩니다.
+
+## run application via Docker
 ```sh
 docker pull tklcat/takealook-backend:latest
 docker run --name app -p 8080:8080 \
@@ -32,4 +54,9 @@ docker run --name app -p 8080:8080 \
     -e DB_PASSWORD=ENTER_YOUR_POSTGRESQL_PASSWORD \
     -e DB_URL=ENTER_YOUR_POSTGRESQL_DB_URL \
     takealook-backend:latest > tkl.log 2<&1 &
+```
+
+## run application via local build
+```
+./gradlew :app:bootrun
 ```
