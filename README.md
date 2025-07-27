@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-### Submodule 초기화
+### Submodule 초기화(Obtional)
 
 이 프로젝트는 `takealook-taskmanager`를 서브모듈로 사용하고 있습니다. 프로젝트를 처음 클론하거나 서브모듈을 초기화하려면 다음 명령어들을 실행해주세요:
 
