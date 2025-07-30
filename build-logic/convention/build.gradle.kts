@@ -4,7 +4,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "my.takealook.memento.buildlogic"
+group = "my.takealook.buildlogic"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17

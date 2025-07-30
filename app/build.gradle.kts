@@ -2,11 +2,9 @@ plugins {
     alias(libs.plugins.takealook.spring.convention)
 }
 
-group = "my.takealook"
-version = "0.0.1"
-
 dependencies {
     implementation(projects.feature.stickers)
+    implementation(projects.feature.auth)
 }
 
 tasks.withType<Test> {
