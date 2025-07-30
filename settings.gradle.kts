@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 
 include(":app")
 include(":feature:stickers")
+include(":feature:auth")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
