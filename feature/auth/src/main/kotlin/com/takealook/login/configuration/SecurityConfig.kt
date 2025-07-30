@@ -22,7 +22,12 @@ class SecurityConfig {
         return http
             .csrf { it.disable() }
             .authorizeExchange {
-                it.pathMatchers("/auth/signin", "/auth/signup").permitAll()
+                it.pathMatchers(
+                    "/auth/signin",
+                    "/auth/signup",
+                    "/stickers",
+                    "/sticker-categories"
+                ).permitAll()
                     .anyExchange().authenticated()
             }
             .build()
