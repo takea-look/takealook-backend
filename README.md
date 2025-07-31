@@ -43,7 +43,7 @@ GRANT ALL PRIVILEGES ON DATABASE takealook TO admin;
 ```
 
 ### 2. DDL 입력
-본 프로젝트는 webflux + r2dbc 기반의 프로젝트라 ddl을 직접 입력해주어야합니다.  
+본 프로젝트는 webflux + r2dbc 기반의 프로젝트이고 JPA같은 ORM이 없습니다. 그렇기에 ddl을 직접 입력해주어야합니다.  
 [schema.sql](https://github.com/takea-look/takealook-backend/blob/main/app/src/main/resources/schema.sql)을 실행해주시면됩니다.
 
 ## run application via Docker
