@@ -1,10 +1,10 @@
-package com.takealook.login
+package com.takealook.data
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 
 @Table("users")
-data class AuthInfo(
+data class UserEntity(
     @Id
     val id: Long? = null,
     val username: String,

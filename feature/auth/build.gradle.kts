@@ -8,6 +8,8 @@ group = "my.takealook"
 version = "0.0.1"
 
 dependencies {
+    implementation(projects.core.domain)
+
     implementation(libs.spring.boot.starter.security)
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
