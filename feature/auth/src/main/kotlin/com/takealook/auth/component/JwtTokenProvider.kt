@@ -1,4 +1,4 @@
-package com.takealook.login.component
+package com.takealook.auth.component
 
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys

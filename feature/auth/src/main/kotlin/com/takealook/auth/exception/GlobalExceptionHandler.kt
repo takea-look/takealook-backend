@@ -1,4 +1,4 @@
-package com.takealook.login.exception
+package com.takealook.auth.exception
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

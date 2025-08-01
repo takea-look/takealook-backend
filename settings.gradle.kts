@@ -19,6 +19,12 @@ dependencyResolutionManagement {
 
 
 include(":app")
+
+// Core
+include(":core:data")
+include(":core:domain")
+
+// Feature
 include(":feature:stickers")
 include(":feature:auth")
 
