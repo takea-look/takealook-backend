@@ -1,6 +1,8 @@
 package com.takealook.stickers.stickers
 
-import kotlinx.coroutines.flow.toList
+import com.takealook.domain.sticker.GetStickersUseCase
+import com.takealook.domain.sticker.SaveStickerUseCase
+import com.takealook.domain.sticker.Sticker
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -13,18 +15,19 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/stickers")
 class StickerController @Autowired constructor(
-    private val iconRepository: StickerRepository
+    private val getStickersUseCase: GetStickersUseCase,
+    private val saveStickerUseCase: SaveStickerUseCase
 ) {
 
     @PostMapping
     suspend fun createIcon(@RequestBody request: StickerCreation): ResponseEntity<Sticker> {
-        val icon = Sticker(
+        val sticker = Sticker(
             name = request.name,
             iconUrl = request.iconUrl,
             thumbnailUrl = request.thumbnailUrl,
             categoryId = request.categoryId
         )
-        val savedIcon = iconRepository.save(icon)
+        val savedIcon = saveStickerUseCase(sticker)
         return ResponseEntity.ok(savedIcon)
     }
 
@@ -32,11 +35,7 @@ class StickerController @Autowired constructor(
     suspend fun getIcons(
         @RequestParam(required = false) categoryId: Long?
     ): ResponseEntity<List<Sticker>> {
-        val icons = if (categoryId != null) {
-            iconRepository.findByCategoryId(categoryId)
-        } else {
-            iconRepository.findAll()
-        }
-        return ResponseEntity.ok(icons.toList())
+        val stickers = getStickersUseCase(categoryId)
+        return ResponseEntity.ok(stickers.toList())
     }
 }
