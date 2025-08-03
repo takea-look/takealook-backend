@@ -1,6 +1,6 @@
-package com.takealook.domain
+package com.takealook.domain.user
 
-import com.takealook.data.UserRepository
+import com.takealook.data.user.UserRepository
 import org.springframework.stereotype.Component
 
 @Component

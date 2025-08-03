@@ -1,8 +1,8 @@
 package com.takealook.auth
 
-import com.takealook.domain.GetUserByNameUseCase
-import com.takealook.domain.SaveUserUseCase
-import com.takealook.domain.User
+import com.takealook.domain.user.GetUserByNameUseCase
+import com.takealook.domain.user.SaveUserUseCase
+import com.takealook.domain.user.User
 import com.takealook.auth.component.JwtTokenProvider
 import com.takealook.auth.exception.InvalidCredentialsException
 import com.takealook.auth.exception.UserAlreadyExistsException

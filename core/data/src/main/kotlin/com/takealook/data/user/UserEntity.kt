@@ -1,4 +1,4 @@
-package com.takealook.data
+package com.takealook.data.user
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table

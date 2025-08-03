@@ -1,13 +1,11 @@
-package com.takealook.stickers.stickers
+package com.takealook.data.sticker
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 
-@Table("stickers")
-data class Sticker(
+@Table("sticker_categories")
+data class StickerCategoryEntity(
     @Id val id: Int? = null,
     val name: String,
-    val iconUrl: String,
-    val thumbnailUrl: String,
-    val categoryId: Int
+    val thumbnailUrl: String
 )
