@@ -1,6 +1,6 @@
-package com.takealook.domain
+package com.takealook.domain.user
 
-import com.takealook.data.UserEntity
+import com.takealook.data.user.UserEntity
 
 data class User(
     val id: Long? = null,
@@ -9,7 +9,6 @@ data class User(
 )
 
 fun UserEntity.toUser() = User(
-    id = id,
     username = username,
     password = password
 )
