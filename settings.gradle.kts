@@ -27,6 +27,7 @@ include(":core:domain")
 // Feature
 include(":feature:stickers")
 include(":feature:auth")
+include(":feature:chat")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
