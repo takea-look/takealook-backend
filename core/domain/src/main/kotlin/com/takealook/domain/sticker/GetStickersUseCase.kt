@@ -1,11 +1,6 @@
 package com.takealook.domain.sticker
+import com.takealook.model.Sticker
 
-import com.takealook.data.sticker.StickerEntity
-import com.takealook.data.sticker.StickerRepository
-import kotlinx.coroutines.flow.toList
-import org.springframework.stereotype.Component
-
-@Component
 class GetStickersUseCase(
     private val repository: StickerRepository
 ) {
@@ -13,10 +8,10 @@ class GetStickersUseCase(
         categoryId: Long? = null,
     ): List<Sticker> {
         val result = if (categoryId != null) {
-            repository.findByCategoryId(categoryId).toList()
+            repository.findStickerByCategoryId(categoryId)
         } else {
-            repository.findAll().toList()
+            repository.findAllStickers()
         }
-        return result.map(StickerEntity::toSticker)
+        return result
     }
 }

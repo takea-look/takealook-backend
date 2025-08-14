@@ -2,7 +2,7 @@ package com.takealook.stickers.category
 
 import com.takealook.domain.sticker.GetStickerCategoriesUseCase
 import com.takealook.domain.sticker.SaveStickerCategoryUseCase
-import com.takealook.domain.sticker.StickerCategory
+import com.takealook.model.StickerCategory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

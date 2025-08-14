@@ -1,6 +1,4 @@
-package com.takealook.domain.sticker
-
-import com.takealook.data.sticker.StickerEntity
+package com.takealook.model
 
 data class Sticker(
     val id: Int? = null,
@@ -10,19 +8,4 @@ data class Sticker(
     val categoryId: Int
 )
 
-fun StickerEntity.toSticker() = Sticker(
-    id = id,
-    name = name,
-    iconUrl = iconUrl,
-    thumbnailUrl = thumbnailUrl,
-    categoryId = categoryId
-)
-
-fun Sticker.toStickerEntity() = StickerEntity(
-    id = id,
-    name = name,
-    iconUrl = iconUrl,
-    thumbnailUrl = thumbnailUrl,
-    categoryId = categoryId
-)
 

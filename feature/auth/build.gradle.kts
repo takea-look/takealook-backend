@@ -1,7 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    alias(libs.plugins.takealook.spring.convention)
+    alias(libs.plugins.takealook.spring.library.convention)
+    alias(libs.plugins.takealook.feature.module.convention)
 }
 
 group = "my.takealook"
