@@ -27,6 +27,8 @@ class ChatHandler : TextWebSocketHandler() {
         super.handleTextMessage(session, message)
 
         // TODO 1: room에 속해있는 userId 들을 조회하여야 함
+
+
         // TODO 2: userId를 기반으로 redis에서 특정 유저의 세션이 살아있는지 여부를 조회한다.
         // TODO 3: 세션이 살아있다면, message를 그대로 보내고, 살아있지 않다면 Push Notification 을 보내자 (+ Redis 필요)
 
