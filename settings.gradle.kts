@@ -23,6 +23,7 @@ include(":app")
 // Core
 include(":core:data")
 include(":core:domain")
+include(":core:model")
 
 // Feature
 include(":feature:stickers")
