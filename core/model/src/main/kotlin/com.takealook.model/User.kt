@@ -1,6 +1,4 @@
-package com.takealook.domain.user
-
-import com.takealook.data.user.UserEntity
+package com.takealook.model
 
 data class User(
     val id: Long? = null,
@@ -8,14 +6,4 @@ data class User(
     val password: String,
 )
 
-fun UserEntity.toUser() = User(
-    username = username,
-    password = password
-)
-
-fun User.toUserEntity() = UserEntity(
-    id = this.id,
-    username = username,
-    password = this.password
-)
 

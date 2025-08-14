@@ -1,9 +1,9 @@
 plugins {
-    alias(libs.plugins.takealook.spring.convention)
+    alias(libs.plugins.takealook.kotlin.module.convention)
 }
 
 dependencies {
-    implementation(projects.core.data)
+    implementation(projects.core.model)
 }
 
 tasks.withType<Test> {

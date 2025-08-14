@@ -2,7 +2,7 @@ package com.takealook.stickers.stickers
 
 import com.takealook.domain.sticker.GetStickersUseCase
 import com.takealook.domain.sticker.SaveStickerUseCase
-import com.takealook.domain.sticker.Sticker
+import com.takealook.model.Sticker
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

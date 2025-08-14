@@ -1,15 +1,11 @@
 package com.takealook.domain.sticker
 
-import com.takealook.data.sticker.StickerCategoryRepository
-import org.springframework.stereotype.Component
+import com.takealook.model.StickerCategory
 
-@Component
 class SaveStickerCategoryUseCase(
     private val repository: StickerCategoryRepository
 ) {
     suspend operator fun invoke(
         category: StickerCategory,
-    ): StickerCategory = repository
-        .save(category.toStickerCategoryEntity())
-        .toStickerCategory()
+    ): StickerCategory = repository.saveStickerCategory(category)
 }

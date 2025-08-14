@@ -33,4 +33,7 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin"}
 
-takealook-spring-convention = { id = "takealook.spring.convention" }
+takealook-spring-application-convention = { id = "takealook.spring.application.convention" }
+takealook-spring-library-convention = { id = "takealook.spring.library.convention" }
+takealook-kotlin-module-convention = { id = "takealook.kotlin.module.convention" }
+takealook-feature-module-convention = { id = "takealook.feature.module.convention" }

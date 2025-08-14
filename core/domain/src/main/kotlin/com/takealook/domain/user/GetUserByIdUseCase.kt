@@ -1,13 +1,9 @@
 package com.takealook.domain.user
 
-import com.takealook.data.user.UserRepository
-import org.springframework.stereotype.Component
+import com.takealook.model.User
 
-@Component
 class GetUserByIdUseCase(
     private val repository: UserRepository
 ) {
-    suspend operator fun invoke(id: Long): User? = repository
-        .findById(id)
-        ?.toUser()
+    suspend operator fun invoke(id: Long): User? = repository.findByUserId(id)
 }
