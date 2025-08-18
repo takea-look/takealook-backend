@@ -1,4 +1,4 @@
-package com.takealook.data.chat
+package com.takealook.data.chat.message
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table

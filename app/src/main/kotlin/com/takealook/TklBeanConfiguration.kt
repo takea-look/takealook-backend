@@ -1,8 +1,10 @@
 package com.takealook
 
+import com.takealook.data.chat.users.ChatRoomUsersRepositoryImpl
 import com.takealook.data.sticker.StickerCategoryRepositoryImpl
 import com.takealook.data.sticker.StickerRepositoryImpl
 import com.takealook.data.user.UserRepositoryImpl
+import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.sticker.GetStickerCategoriesUseCase
 import com.takealook.domain.sticker.GetStickersUseCase
 import com.takealook.domain.sticker.SaveStickerCategoryUseCase
@@ -17,7 +19,8 @@ import org.springframework.context.annotation.Configuration
 class TklBeanConfiguration(
     private val userRepository: UserRepositoryImpl,
     private val stickerRepository: StickerRepositoryImpl,
-    private val stickerCategoryRepository: StickerCategoryRepositoryImpl
+    private val stickerCategoryRepository: StickerCategoryRepositoryImpl,
+    private val chatRoomUsersRepository: ChatRoomUsersRepositoryImpl,
 ) {
     @Bean
     fun provideSaveUserUseCase() = SaveUserUseCase(userRepository)
@@ -39,4 +42,7 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideSaveStickerCategoryUseCase() = SaveStickerCategoryUseCase(stickerCategoryRepository)
+
+    @Bean
+    fun provideGetChatUsersByRoomIdUseCase() = GetChatUsersByRoomIdUseCase(chatRoomUsersRepository)
 }
