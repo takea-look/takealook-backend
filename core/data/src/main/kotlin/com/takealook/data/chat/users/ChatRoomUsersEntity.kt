@@ -4,7 +4,7 @@ import com.takealook.model.ChatUser
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 
-@Table("chat_rooms")
+@Table("chat_room_users")
 data class ChatRoomUsersEntity(
     @Id val id: Long? = null,
     val userId: Long,
