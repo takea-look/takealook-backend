@@ -1,17 +1,24 @@
 package com.takealook.chat
 
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.web.socket.config.annotation.EnableWebSocket
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
+import org.springframework.web.reactive.HandlerMapping
+import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
+import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
 
 @Configuration
-@EnableWebSocket
 class ChatConfiguration(
     private val chatHandler: ChatHandler,
-) : WebSocketConfigurer {
-    override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(chatHandler, "/chat")
-            .setAllowedOrigins("*")
+) {
+
+    @Bean
+    fun webSocketMapping(): HandlerMapping {
+        val map = mapOf(
+            "/chat" to chatHandler
+        )
+        return  SimpleUrlHandlerMapping(map, 1)
     }
+
+    @Bean
+    fun handlerAdapter() = WebSocketHandlerAdapter()
 }

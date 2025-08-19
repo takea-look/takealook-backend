@@ -1,51 +1,82 @@
 package com.takealook.chat
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
+import com.takealook.domain.user.GetUserByIdUseCase
+import com.takealook.model.ChatMessage
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Controller
-import org.springframework.web.socket.CloseStatus
-import org.springframework.web.socket.TextMessage
-import org.springframework.web.socket.WebSocketSession
-import org.springframework.web.socket.handler.TextWebSocketHandler
+import org.springframework.web.reactive.socket.CloseStatus
+import org.springframework.web.reactive.socket.WebSocketHandler
+import org.springframework.web.reactive.socket.WebSocketSession
+import reactor.core.publisher.Mono
+import java.util.concurrent.ConcurrentHashMap
 
 @Controller
-class ChatHandler : TextWebSocketHandler() {
+class ChatHandler(
+    private val objectMapper: ObjectMapper,
+    private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
+    private val getUserByIdUseCase: GetUserByIdUseCase,
+) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
+    private val sessions = ConcurrentHashMap<Long, WebSocketSession>()
 
-    /**
-     * 만약 채팅 서버를 여러대 둔다고 하면, Redis에는 특정 세션id가 어떤 서버에 매핑되어있는지 까지 저장을 해둬야할 듯하다.
-     */
-    private val sessions = mutableSetOf<WebSocketSession>()
+    override fun handle(session: WebSocketSession): Mono<Void?> = mono {
+        val userId = session.handshakeInfo.uri.query.split("&")
+            .firstOrNull { it.startsWith("userId=") }
+            ?.substringAfter("userId=")
+            ?.toLongOrNull()
 
-    override fun afterConnectionEstablished(session: WebSocketSession) {
-        super.afterConnectionEstablished(session)
-        sessions += session
-
-        logger.info("Connection successfully established for ${session.remoteAddress}")
-    }
-
-    override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-        super.handleTextMessage(session, message)
-
-        // TODO 1: room에 속해있는 userId 들을 조회하여야 함
-
-
-        // TODO 2: userId를 기반으로 redis에서 특정 유저의 세션이 살아있는지 여부를 조회한다.
-        // TODO 3: 세션이 살아있다면, message를 그대로 보내고, 살아있지 않다면 Push Notification 을 보내자 (+ Redis 필요)
-
-        sessions.forEach { sess ->
-            if (sess.isOpen) {
-                /* TODO: message 의 형태는 ChatMessageEntity 를 기반으로 domain에 정의하여야 함 */
-                val msg = message.payload
-                sess.sendMessage(TextMessage(msg))
-            } else {
-                sessions -= sess
-            }
+        if (userId == null) {
+            logger.error("User ID not found in WebSocket session for ${session.id}")
+            return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull() // userId가 없으면 연결 종료
         }
-    }
 
-    override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        super.afterConnectionClosed(session, status)
-        sessions -= session
-        logger.info("Connection closed for ${session.remoteAddress}")
+        getUserByIdUseCase(userId) ?: run {
+            logger.error("User not found in WebSocket session for ${session.id}")
+            return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull()
+        }
+
+        sessions[userId] = session
+        logger.info("New WebSocket session established for user $userId (Session ID: ${session.id})")
+
+        // incoming message 처리
+        val incoming = session.receive()
+            .map { it.payloadAsText }
+            .flatMap { msg ->
+                mono {
+                    val chatMessage = objectMapper.readValue<ChatMessage>(msg)
+                    logger.info("Received message from {}: {}", userId, chatMessage)
+
+                    val users = getChatUsersByRoomIdUseCase(chatMessage.roomId)
+                    val messageToSend = objectMapper.writeValueAsString(chatMessage)
+                    users.forEach { user ->
+                        val targetSession = sessions[user.userId]
+                        if (targetSession == null || !targetSession.isOpen) return@forEach
+                        logger.info("Distributing message to user {}: {}", user.id, chatMessage)
+
+                        targetSession.send(
+                            Mono.just(
+                                targetSession.textMessage(messageToSend)
+                            )
+                        ).doOnError {
+                            e -> logger.error("Error sending message to user ${user.id}: ${e.message}", e)
+                        }.awaitSingleOrNull()
+                    }
+                }
+            }
+            .doOnError { e -> logger.error("Error in incoming stream for user $userId: ${e.message}", e) }
+            .then()
+
+        return@mono Mono.`when`(incoming)
+            .doFinally { signalType ->
+                sessions.remove(userId)
+                logger.info("WebSocket session for user $userId (Session ID: ${session.id}) closed with status: $signalType")
+            }
+            .doOnError { e -> logger.error("WebSocket session for user $userId terminated unexpectedly: ${e.message}", e) }
+            .awaitSingleOrNull()
     }
 }
