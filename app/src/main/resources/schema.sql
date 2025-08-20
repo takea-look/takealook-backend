@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS chat_messages (
     id BIGSERIAL PRIMARY KEY,
     room_id INT NOT NULL REFERENCES chat_rooms(id),
-    sender_id INT NOT NULL REFERENCES chat_room_users(id),
+    sender_id INT NOT NULL REFERENCES users(id),
     image_url VARCHAR(1024) NOT NULL,
     reply_to_id BIGINT REFERENCES chat_messages(id),
-    created_at BIGINT NOT NULL,
+    created_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chat_rooms (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS chat_rooms (
     name VARCHAR(255) NOT NULL UNIQUE,
     is_public BOOLEAN NOT NULL DEFAULT TRUE,
     max_participants INT NOT NULL DEFAULT 0,
-    created_at BIGINT NOT NULL,
+    created_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chat_room_users(

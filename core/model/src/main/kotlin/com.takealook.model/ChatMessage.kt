@@ -5,6 +5,6 @@ data class ChatMessage(
     val roomId: Long,
     val senderId: Long,
     val imageUrl: String,
-    val replyToId: String,
-    val createdAt: Long,
+    val replyToId: Long?,
+    val createdAt: Long = System.currentTimeMillis(),
 )
