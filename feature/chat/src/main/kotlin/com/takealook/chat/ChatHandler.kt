@@ -2,6 +2,7 @@ package com.takealook.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.user.GetUserByIdUseCase
 import com.takealook.model.ChatMessage
@@ -20,6 +21,7 @@ class ChatHandler(
     private val objectMapper: ObjectMapper,
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
     private val getUserByIdUseCase: GetUserByIdUseCase,
+    private val saveMessageUseCase: SaveMessageUseCase,
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
     private val sessions = ConcurrentHashMap<Long, WebSocketSession>()
@@ -49,6 +51,7 @@ class ChatHandler(
             .flatMap { msg ->
                 mono {
                     val chatMessage = objectMapper.readValue<ChatMessage>(msg)
+                    saveMessageUseCase(chatMessage)
                     logger.info("Received message from {}: {}", userId, chatMessage)
 
                     val users = getChatUsersByRoomIdUseCase(chatMessage.roomId)
