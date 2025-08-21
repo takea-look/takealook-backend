@@ -1,11 +1,13 @@
 package com.takealook
 
 import com.takealook.data.chat.message.ChatMessagesRepositoryImpl
+import com.takealook.data.chat.room.ChatRoomsRepositoryImpl
 import com.takealook.data.chat.users.ChatRoomUsersRepositoryImpl
 import com.takealook.data.sticker.StickerCategoryRepositoryImpl
 import com.takealook.data.sticker.StickerRepositoryImpl
 import com.takealook.data.user.UserRepositoryImpl
 import com.takealook.domain.chat.message.SaveMessageUseCase
+import com.takealook.domain.chat.room.GetChatRoomsUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.sticker.GetStickerCategoriesUseCase
 import com.takealook.domain.sticker.GetStickersUseCase
@@ -24,6 +26,7 @@ class TklBeanConfiguration(
     private val stickerCategoryRepository: StickerCategoryRepositoryImpl,
     private val chatRoomUsersRepository: ChatRoomUsersRepositoryImpl,
     private val chatMessagesRepository: ChatMessagesRepositoryImpl,
+    private val chatRoomsRepository: ChatRoomsRepositoryImpl,
 ) {
     @Bean
     fun provideSaveUserUseCase() = SaveUserUseCase(userRepository)
@@ -51,4 +54,7 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideSaveChatMessageUseCase() = SaveMessageUseCase(chatMessagesRepository)
+
+    @Bean
+    fun provideGetChatRoomsUseCase() = GetChatRoomsUseCase(chatRoomsRepository)
 }
