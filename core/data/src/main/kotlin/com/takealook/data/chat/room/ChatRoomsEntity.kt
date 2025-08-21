@@ -1,5 +1,6 @@
 package com.takealook.data.chat.room
 
+import com.takealook.model.ChatRoom
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 
@@ -10,4 +11,20 @@ data class ChatRoomsEntity(
     val isPublic: Boolean,
     val maxParticipants: Int,
     val createdAt: Long,
+)
+
+fun ChatRoomsEntity.toExternal() = ChatRoom(
+    id = id,
+    name = name,
+    isPublic = isPublic,
+    maxParticipants = maxParticipants,
+    createdAt = createdAt,
+)
+
+fun ChatRoom.fromExternal() = ChatRoomsEntity(
+    id = id,
+    name = name,
+    isPublic = isPublic,
+    maxParticipants = maxParticipants,
+    createdAt = createdAt,
 )
