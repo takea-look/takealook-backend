@@ -1,51 +1,154 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="cd1ac4ea-4497-4ccf-8670-0b84aab48524" name="변경" comment="" />
+    <list default="true" id="cd1ac4ea-4497-4ccf-8670-0b84aab48524" name="변경" comment="[takea-look#38] 채팅 &gt; configuration 최신화">
+      <change afterPath="$PROJECT_DIR$/core/domain/src/main/kotlin/com/takealook/domain/chat/message/GetMessagesUseCase.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/takealook-backend.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/kotlin/com/takealook/TklBeanConfiguration.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/kotlin/com/takealook/TklBeanConfiguration.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/feature/chat/src/main/kotlin/com/takealook/chat/ChatRestController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/chat/src/main/kotlin/com/takealook/chat/ChatRestController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/taskmaster" beforeDir="false" afterPath="$PROJECT_DIR$/taskmaster" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/taskmaster/tasks.json" beforeDir="false" afterPath="$PROJECT_DIR$/taskmaster/tasks.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="takealook-backend" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Kotlin File" />
+        <option value="Kotlin Interface" />
+        <option value="Kotlin Data Class" />
+        <option value="Kotlin Class" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "easternkite"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;easternkite&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/takea-look/takealook-backend.git",
-    "accountId": "823d3cc5-e48b-4a3c-afec-877cb448a73c"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/takea-look/takealook-backend.git&quot;,
+    &quot;accountId&quot;: &quot;823d3cc5-e48b-4a3c-afec-877cb448a73c&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.3.4/2e222a17df01a2ce1188a3aa7f0269238215c748/spring-security-crypto-6.3.4-sources.jar!/org/springframework/security/crypto/bcrypt/BCryptPasswordEncoder.java" root0="SKIP_INSPECTION" />
+    <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.3.4/2e222a17df01a2ce1188a3aa7f0269238215c748/spring-security-crypto-6.3.4-sources.jar!/org/springframework/security/crypto/password/PasswordEncoder.java" root0="SKIP_INSPECTION" />
+    <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework/spring-web/6.1.14/99951d6aad6ac9d57c7d6e7940536154d7b227e4/spring-web-6.1.14-sources.jar!/org/springframework/http/HttpStatus.java" root0="SKIP_INSPECTION" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="2xVEmX1C5xB2xu85SA2m4VhGnCY" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/easternkite/easternkite/takealook/takealook-backend",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Gradle.Build takealook-backend.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Download Sources.executor&quot;: &quot;Run&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Spring Boot.TakealookBackendApplication.executor&quot;: &quot;Run&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/easternkite/easternkite/takealook/takealook-backend/core/model&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
+    ]
   }
-}]]></component>
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/core/model" />
+      <recent name="$PROJECT_DIR$/feature/chat" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/core/model/src/main/kotlin" />
+    </key>
+    <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
+      <recent name="com.takealook.domain.chat.message" />
+      <recent name="com.takealook.data.chat.message" />
+      <recent name="com.takealook.data.chat.users" />
+      <recent name="com.takealook.data.chat.room" />
+      <recent name="com.takealook.data.user" />
+    </key>
+    <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+      <recent name="com.takealook.domain.chat.room" />
+      <recent name="com.takealook.data.chat.message" />
+      <recent name="com.takealook.data.chat.users" />
+      <recent name="com.takealook.data.chat.room" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="TakealookBackendApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="$USER_HOME$/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home" />
+      <module name="easternkite.takealook-backend.app.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.takealook.TakealookBackendApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-a94e463ab2e7-intellij.indexing.shared.core-IU-243.26053.27" />
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-IU-243.26053.27" />
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.129" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.129" />
       </set>
     </attachedChunks>
   </component>
@@ -58,10 +161,134 @@
       <option name="presentableId" value="Default" />
       <updated>1748014999481</updated>
       <workItem from="1748015000545" duration="155000" />
+      <workItem from="1754998012552" duration="597000" />
+      <workItem from="1755163357566" duration="8806000" />
+      <workItem from="1755520803002" duration="27127000" />
+      <workItem from="1755871750593" duration="1327000" />
     </task>
+    <task id="LOCAL-00001" summary="[takea-look#21] accessToken 인증 로직 추가">
+      <option name="closed" value="true" />
+      <created>1754320507787</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1754320507787</updated>
+    </task>
+    <task id="LOCAL-00002" summary="[takea-look#23] 채팅 DB 테이블 설계">
+      <option name="closed" value="true" />
+      <created>1754403255243</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1754403255243</updated>
+    </task>
+    <task id="LOCAL-00003" summary="[takea-look#25] 웹소켓 채팅 기본 구조 및 TODO 주석 추가">
+      <option name="closed" value="true" />
+      <created>1754412339973</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1754412339973</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Servlet Security 비활성화">
+      <option name="closed" value="true" />
+      <created>1754412705898</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1754412705898</updated>
+    </task>
+    <task id="LOCAL-00005" summary="model 모듈 추가">
+      <option name="closed" value="true" />
+      <created>1755163608245</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1755163608245</updated>
+    </task>
+    <task id="LOCAL-00006" summary="model 모듈 추가">
+      <option name="closed" value="true" />
+      <created>1755180056403</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1755180056403</updated>
+    </task>
+    <task id="LOCAL-00007" summary="[takea-look#30] 클린아키텍쳐 의존성 분리 (domain, data)">
+      <option name="closed" value="true" />
+      <created>1755186449256</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1755186449256</updated>
+    </task>
+    <task id="LOCAL-00008" summary="[takea-look#32] WebSocket에 필요한 데이터 fetch 로직 추가">
+      <option name="closed" value="true" />
+      <created>1755533228847</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1755533228847</updated>
+    </task>
+    <task id="LOCAL-00009" summary="chatRoomUsersEntity -&gt; 테이블명 수정">
+      <option name="closed" value="true" />
+      <created>1755619573306</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1755619573306</updated>
+    </task>
+    <task id="LOCAL-00010" summary="[takea-look#34] WebSocket -&gt; WebFlux 로 이전">
+      <option name="closed" value="true" />
+      <created>1755620330037</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1755620330037</updated>
+    </task>
+    <task id="LOCAL-00011" summary="[takea-look#36] 채팅 &gt; 메세지 수신 시 DB 저장 로직 추가">
+      <option name="closed" value="true" />
+      <created>1755703508255</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1755703508255</updated>
+    </task>
+    <task id="LOCAL-00012" summary="[takea-look#38] 채팅 &gt; 채팅방 목록조회 rest api 추가">
+      <option name="closed" value="true" />
+      <created>1755793811574</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1755793811574</updated>
+    </task>
+    <task id="LOCAL-00013" summary="[takea-look#38] 채팅 &gt; configuration 최신화">
+      <option name="closed" value="true" />
+      <created>1755793876739</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1755793876739</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="[takea-look#21] accessToken 인증 로직 추가" />
+    <MESSAGE value="[takea-look#23] 채팅 DB 테이블 설계" />
+    <MESSAGE value="[takea-look#25] 웹소켓 채팅 기본 구조 및 TODO 주석 추가" />
+    <MESSAGE value="Servlet Security 비활성화" />
+    <MESSAGE value="model 모듈 추가" />
+    <MESSAGE value="[takea-look#30] 클린아키텍쳐 의존성 분리 (domain, data)" />
+    <MESSAGE value="[takea-look#32] WebSocket에 필요한 데이터 fetch 로직 추가" />
+    <MESSAGE value="chatRoomUsersEntity -&gt; 테이블명 수정" />
+    <MESSAGE value="[takea-look#34] WebSocket -&gt; WebFlux 로 이전" />
+    <MESSAGE value="[takea-look#36] 채팅 &gt; 메세지 수신 시 DB 저장 로직 추가" />
+    <MESSAGE value="[takea-look#38] 채팅 &gt; 채팅방 목록조회 rest api 추가" />
+    <MESSAGE value="[takea-look#38] 채팅 &gt; configuration 최신화" />
+    <option name="LAST_COMMIT_MESSAGE" value="[takea-look#38] 채팅 &gt; configuration 최신화" />
   </component>
 </project>
