@@ -2,8 +2,8 @@ package com.takealook.chat
 
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.room.GetChatRoomsUseCase
-import com.takealook.model.ChatMessage
 import com.takealook.model.ChatRoom
+import com.takealook.model.UserChatMessage
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -26,7 +26,7 @@ class ChatRestController(
     @GetMapping("/messages")
     suspend fun getMessages(
         @RequestParam(required = true) roomId: Long
-    ): ResponseEntity<List<ChatMessage>> {
+    ): ResponseEntity<List<UserChatMessage>> {
         val messages = getChatMessagesUseCase(roomId)
         return ResponseEntity.ok(messages)
     }

@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
-import com.takealook.domain.user.GetUserByIdUseCase
+import com.takealook.domain.user.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
+import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 class ChatHandler(
     private val objectMapper: ObjectMapper,
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
-    private val getUserByIdUseCase: GetUserByIdUseCase,
+    private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val saveMessageUseCase: SaveMessageUseCase,
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
@@ -37,7 +38,7 @@ class ChatHandler(
             return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull() // userId가 없으면 연결 종료
         }
 
-        getUserByIdUseCase(userId) ?: run {
+        getUserProfileByIdUseCase(userId) ?: run {
             logger.error("User not found in WebSocket session for ${session.id}")
             return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull()
         }
@@ -51,11 +52,15 @@ class ChatHandler(
             .flatMap { msg ->
                 mono {
                     val chatMessage = objectMapper.readValue<ChatMessage>(msg)
+                    val userProfile = getUserProfileByIdUseCase(userId) ?: return@mono null
+                    val messageToSend = chatMessage
+                        .toUserChatMessage(userProfile)
+                        .let(objectMapper::writeValueAsString)
+
                     saveMessageUseCase(chatMessage)
                     logger.info("Received message from {}: {}", userId, chatMessage)
 
                     val users = getChatUsersByRoomIdUseCase(chatMessage.roomId)
-                    val messageToSend = objectMapper.writeValueAsString(chatMessage)
                     users.forEach { user ->
                         val targetSession = sessions[user.userId]
                         if (targetSession == null || !targetSession.isOpen) return@forEach

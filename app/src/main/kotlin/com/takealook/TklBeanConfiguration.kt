@@ -14,7 +14,7 @@ import com.takealook.domain.sticker.GetStickerCategoriesUseCase
 import com.takealook.domain.sticker.GetStickersUseCase
 import com.takealook.domain.sticker.SaveStickerCategoryUseCase
 import com.takealook.domain.sticker.SaveStickerUseCase
-import com.takealook.domain.user.GetUserByIdUseCase
+import com.takealook.domain.user.GetUserProfileByIdUseCase
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import org.springframework.context.annotation.Bean
@@ -33,7 +33,7 @@ class TklBeanConfiguration(
     fun provideSaveUserUseCase() = SaveUserUseCase(userRepository)
 
     @Bean
-    fun provideGetUserByIdUseCase() = GetUserByIdUseCase(userRepository)
+    fun provideGetUserByIdUseCase() = GetUserProfileByIdUseCase(userRepository)
 
     @Bean
     fun provideGetUserByNameUseCase() = GetUserByNameUseCase(userRepository)
@@ -57,7 +57,10 @@ class TklBeanConfiguration(
     fun provideSaveChatMessageUseCase() = SaveMessageUseCase(chatMessagesRepository)
 
     @Bean
-    fun provideGetChatMessagesUseCase() = GetMessagesUseCase(chatMessagesRepository)
+    fun provideGetChatMessagesUseCase() = GetMessagesUseCase(
+        chatMessagesRepository = chatMessagesRepository,
+        userRepository = userRepository,
+    )
 
     @Bean
     fun provideGetChatRoomsUseCase() = GetChatRoomsUseCase(chatRoomsRepository)
