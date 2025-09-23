@@ -4,6 +4,7 @@ springDependencyManagement = "1.1.7"
 kotlin = "2.2.0"
 coroutines = "1.7.2"
 jjwt = "0.12.5"
+aws = "2.34.0"
 
 [libraries]
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
@@ -22,6 +23,8 @@ jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 
+# AWS
+aws-s3-core = { module = "software.amazon.awssdk:s3", version.ref = "aws"}
 
 # build-logic
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
