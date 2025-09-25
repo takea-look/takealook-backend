@@ -9,6 +9,7 @@ dependencies {
     implementation(projects.feature.stickers)
     implementation(projects.feature.auth)
     implementation(projects.feature.chat)
+    implementation(projects.feature.storage)
 }
 
 tasks.withType<Test> {
