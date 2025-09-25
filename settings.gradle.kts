@@ -29,6 +29,7 @@ include(":core:model")
 include(":feature:stickers")
 include(":feature:auth")
 include(":feature:chat")
+include(":feature:storage")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
