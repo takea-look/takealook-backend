@@ -46,4 +46,8 @@ jobs:
               -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
               -e DB_URL='${{ secrets.DB_URL }}' \
               -e JWT_SECURE='${{ secrets.JWT_SECURE }}' \
+              -e R2_ACCOUNT_ID='${{ secrets.R2_ACCOUNT_ID }} \
+              -e R2_ACCESS_KEY='${{ secrets.R2_ACCESS_KEY }} \
+              -e R2_SECRET_KEY='${{ secrets.R2_SECRET_KEY }} \
+              -e R2_BUCKET_NAME='${{ secrets.R2_BUCKET_NAME }} \
               tklcat/takealook-backend:${{ github.ref_name }} >> tkl.log 2>&1 &
