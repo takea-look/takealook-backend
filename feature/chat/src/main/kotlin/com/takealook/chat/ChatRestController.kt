@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/chat")
 class ChatRestController(
     private val getChatRoomsUseCase: GetChatRoomsUseCase,
-    private val getChatMessagesUseCase: GetMessagesUseCase
+    private val getChatMessagesUseCase: GetMessagesUseCase,
 ) {
 
     @GetMapping("/rooms")

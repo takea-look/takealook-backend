@@ -3,10 +3,10 @@ package com.takealook.auth
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.auth.component.JwtTokenProvider
-import com.takealook.auth.exception.InvalidCredentialsException
-import com.takealook.auth.exception.UserAlreadyExistsException
 import com.takealook.auth.model.LoginRequest
 import com.takealook.auth.model.LoginResponse
+import com.takealook.domain.exceptions.InvalidCredentialsException
+import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.model.User
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.PostMapping

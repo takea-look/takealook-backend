@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
-import com.takealook.domain.user.GetUserProfileByIdUseCase
+import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
 import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingleOrNull

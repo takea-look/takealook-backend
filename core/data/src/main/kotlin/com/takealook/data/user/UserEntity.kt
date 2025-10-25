@@ -13,6 +13,7 @@ data class UserEntity(
 )
 
 fun UserEntity.toUser() = User(
+    id = id,
     username = username,
     password = password
 )
