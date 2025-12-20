@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.takealook.spring.library.convention)
+    alias(libs.plugins.takealook.spring.swagger.convention)
 }
 
 dependencies {
