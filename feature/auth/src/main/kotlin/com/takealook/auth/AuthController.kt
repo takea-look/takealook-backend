@@ -8,12 +8,15 @@ import com.takealook.auth.model.LoginResponse
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.model.User
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+@Tag(name = "Authentication", description = "인증 관리 API")
 @RestController
 @RequestMapping("/auth")
 class AuthController(
@@ -23,6 +26,7 @@ class AuthController(
     private val jwtTokenProvider: JwtTokenProvider
 ) {
 
+    @Operation(summary = "로그인", description = "사용자 이름과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.")
     @PostMapping("/signin")
     suspend fun login(@RequestBody loginRequest: LoginRequest): LoginResponse {
         println("request : $loginRequest")
@@ -37,6 +41,7 @@ class AuthController(
         return LoginResponse(token)
     }
 
+    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
     @PostMapping("/signup")
     suspend fun signUp(@RequestBody signupRequest: LoginRequest): Unit {
         if (getUserByNameUseCase(signupRequest.username) != null) {
