@@ -42,5 +42,10 @@ gradlePlugin {
             id = "takealook.feature.module.convention"
             implementationClass = "FeatureModuleConventionPlugin"
         }
+
+        register("takealook.spring.swagger.convention") {
+            id = "takealook.spring.swagger.convention"
+            implementationClass = "SpringBootSwaggerConventionPlugin"
+        }
     }
 }

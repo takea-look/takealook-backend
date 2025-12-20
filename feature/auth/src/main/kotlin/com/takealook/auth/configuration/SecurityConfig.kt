@@ -40,7 +40,11 @@ class SecurityConfig(
                     "/auth/signin",
                     "/auth/signup",
                     "/stickers",
-                    "/sticker-categories"
+                    "/sticker-categories",
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/webjars/**"
                 ).permitAll().anyExchange().authenticated()
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
