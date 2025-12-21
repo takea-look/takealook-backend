@@ -1,5 +1,5 @@
 # takealook-backend
-
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/takea-look/takealook-backend?utm_source=oss&utm_medium=github&utm_campaign=takea-look%2Ftakealook-backend&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 ## Getting Started
 
 ### Submodule 초기화(Obtional)
