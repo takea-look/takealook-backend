@@ -22,7 +22,7 @@ class StickerController @Autowired constructor(
     private val saveStickerUseCase: SaveStickerUseCase
 ) {
 
-    @Operation(summary = "스티커 생성", description = "새로운 스티커를 생성합니다.")
+    @Operation(summary = "스티커 생성", description = "새로운 스티커를 생성합니다.", security = [])
     @PostMapping
     suspend fun createIcon(@RequestBody request: StickerCreation): ResponseEntity<Sticker> {
         val sticker = Sticker(
@@ -35,7 +35,7 @@ class StickerController @Autowired constructor(
         return ResponseEntity.ok(savedIcon)
     }
 
-    @Operation(summary = "스티커 목록 조회", description = "스티커 목록을 조회합니다. 카테고리 ID로 필터링이 가능합니다.")
+    @Operation(summary = "스티커 목록 조회", description = "스티커 목록을 조회합니다. 카테고리 ID로 필터링이 가능합니다.", security = [])
     @GetMapping
     suspend fun getIcons(
         @RequestParam(required = false) categoryId: Long?
