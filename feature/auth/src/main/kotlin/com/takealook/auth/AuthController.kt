@@ -26,7 +26,11 @@ class AuthController(
     private val jwtTokenProvider: JwtTokenProvider
 ) {
 
-    @Operation(summary = "로그인", description = "사용자 이름과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.")
+    @Operation(
+        summary = "로그인",
+        description = "사용자 이름과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.",
+        security = []
+    )
     @PostMapping("/signin")
     suspend fun login(@RequestBody loginRequest: LoginRequest): LoginResponse {
         println("request : $loginRequest")
@@ -41,7 +45,11 @@ class AuthController(
         return LoginResponse(token)
     }
 
-    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
+    @Operation(
+        summary = "회원가입",
+        description = "새로운 사용자를 등록합니다.",
+        security = []
+    )
     @PostMapping("/signup")
     suspend fun signUp(@RequestBody signupRequest: LoginRequest): Unit {
         if (getUserByNameUseCase(signupRequest.username) != null) {
