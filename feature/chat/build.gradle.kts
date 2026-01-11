@@ -5,9 +5,17 @@ plugins {
 
 dependencies {
     implementation(projects.core.domain)
+    implementation(projects.feature.auth)
 
-//    implementation(libs.spring.boot.starter.data.redis)
-    // webSocket 의존성은 필요없음 (webflux 자체적으로 지원하기 때문)
+    implementation(libs.spring.boot.starter.data.redis.reactive)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.jjwt.api)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
+    testImplementation(libs.reactor.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 tasks.withType<Test> {

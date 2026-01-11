@@ -2,6 +2,7 @@ package com.takealook.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
@@ -10,6 +11,7 @@ import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Controller
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.WebSocketHandler
@@ -23,20 +25,41 @@ class ChatHandler(
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
     private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val saveMessageUseCase: SaveMessageUseCase,
+    private val wsTicketService: WsTicketService,
+    @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
+    private val allowedOriginsConfig: String
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
     private val sessions = ConcurrentHashMap<Long, WebSocketSession>()
 
-    override fun handle(session: WebSocketSession): Mono<Void?> = mono {
-        val userId = session.handshakeInfo.uri.query.split("&")
-            .firstOrNull { it.startsWith("userId=") }
-            ?.substringAfter("userId=")
-            ?.toLongOrNull()
+    private val allowedOrigins: Set<String> by lazy {
+        allowedOriginsConfig.split(",").map { it.trim() }.toSet()
+    }
 
-        if (userId == null) {
-            logger.error("User ID not found in WebSocket session for ${session.id}")
-            return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull() // userId가 없으면 연결 종료
+    override fun handle(session: WebSocketSession): Mono<Void?> = mono {
+        val origin = session.handshakeInfo.headers.origin
+        if (origin != null && origin !in allowedOrigins) {
+            logger.warn("Rejected connection from unauthorized origin: $origin")
+            return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
+
+        val ticket = session.handshakeInfo.uri.query
+            ?.split("&")
+            ?.firstOrNull { it.startsWith("ticket=") }
+            ?.substringAfter("ticket=")
+
+        if (ticket == null) {
+            logger.warn("Missing ticket in WebSocket handshake for session ${session.id}")
+            return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
+        }
+
+        val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
+        if (ticketData == null) {
+            logger.warn("Invalid or expired ticket for session ${session.id}")
+            return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
+        }
+
+        val userId = ticketData.userId
 
         getUserProfileByIdUseCase(userId) ?: run {
             logger.error("User not found in WebSocket session for ${session.id}")
@@ -44,9 +67,8 @@ class ChatHandler(
         }
 
         sessions[userId] = session
-        logger.info("New WebSocket session established for user $userId (Session ID: ${session.id})")
+        logger.info("WebSocket session established for user $userId (${ticketData.username}, Session ID: ${session.id})")
 
-        // incoming message 처리
         val incoming = session.receive()
             .map { it.payloadAsText }
             .flatMap { msg ->

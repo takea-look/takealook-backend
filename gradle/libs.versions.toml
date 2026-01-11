@@ -10,6 +10,7 @@ aws = "2.34.0"
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-boot-starter-data-redis-reactive = { module = "org.springframework.boot:spring-boot-starter-data-redis-reactive" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-data-r2dbc = { module = "org.springframework.data:spring-data-r2dbc" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool" }
@@ -25,6 +26,13 @@ jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 springdoc-openapi-webflux-ui = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version = "2.6.0" }
 webjars-locator-core = { module = "org.webjars:webjars-locator-core" }
 swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version = "2.2.22" }
+
+# Test
+mockk = { module = "io.mockk:mockk", version = "1.13.13" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+testcontainers-redis = { module = "com.redis:testcontainers-redis", version = "2.2.2" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
+reactor-test = { module = "io.projectreactor:reactor-test" }
 
 # AWS
 aws-s3-core = { module = "software.amazon.awssdk:s3", version.ref = "aws"}

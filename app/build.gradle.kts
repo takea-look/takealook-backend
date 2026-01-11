@@ -11,6 +11,8 @@ dependencies {
     implementation(projects.feature.auth)
     implementation(projects.feature.chat)
     implementation(projects.feature.storage)
+
+    implementation(libs.spring.boot.starter.data.redis.reactive)
 }
 
 tasks.withType<Test> {
