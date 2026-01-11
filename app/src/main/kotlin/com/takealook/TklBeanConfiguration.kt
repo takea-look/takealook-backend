@@ -17,6 +17,7 @@ import com.takealook.domain.sticker.SaveStickerCategoryUseCase
 import com.takealook.domain.sticker.SaveStickerUseCase
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
+import com.takealook.domain.user.profile.GetMyProfileUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -36,6 +37,9 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideGetUserByIdUseCase() = GetUserProfileByIdUseCase(userProfileRepository)
+
+    @Bean
+    fun provideGetMyProfileUseCase() = GetMyProfileUseCase(userRepository, userProfileRepository)
 
     @Bean
     fun provideGetUserByNameUseCase() = GetUserByNameUseCase(userRepository)
