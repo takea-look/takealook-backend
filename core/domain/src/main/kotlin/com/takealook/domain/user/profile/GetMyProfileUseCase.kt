@@ -16,7 +16,8 @@ class GetMyProfileUseCase(
         val user = userRepository.findByUserName(username)
             ?: throw UserNotFoundException("User not found")
 
-        val userId = user.id ?: throw UserNotFoundException("User not found")
+        // User exists but has no ID - this indicates a data integrity issue
+        val userId = user.id ?: throw UserNotFoundException("User data is invalid")
 
         // 2. user.id로 UserProfile 조회
         val profile = userProfileRepository.findByUserId(userId)
