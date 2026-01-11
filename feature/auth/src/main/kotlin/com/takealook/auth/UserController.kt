@@ -1,5 +1,6 @@
 package com.takealook.auth
 
+import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.ProfileNotFoundException
 import com.takealook.domain.user.profile.GetMyProfileUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
@@ -35,9 +36,10 @@ class UserController(
     ])
     @GetMapping("/profile/me")
     suspend fun getMyProfile(
-        @AuthenticationPrincipal principal: Claims
+        @AuthenticationPrincipal principal: Claims?
     ): ResponseEntity<UserProfile> {
-        val username = principal.subject
+        val username = principal?.subject?.takeIf { it.isNotBlank() }
+            ?: throw InvalidCredentialsException("Invalid token")
         val profile = getMyProfileUseCase(username)
         return ResponseEntity.ok(profile)
     }
