@@ -3,6 +3,7 @@ package com.takealook.auth.exception
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.ProfileNotFoundException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
+import com.takealook.domain.exceptions.UserNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -40,6 +41,17 @@ class GlobalExceptionHandler {
             status = status.value(),
             reason = "Profile not found",
             message = ex.message ?: "Profile not found"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(UserNotFoundException::class)
+    fun handleUserNotFoundException(ex: UserNotFoundException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.NOT_FOUND
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "USER_NOT_FOUND",
+            message = ex.message ?: "User not found"
         )
         return ResponseEntity.status(status).body(errorResponse)
     }
