@@ -61,7 +61,8 @@ class SecurityConfig(
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
-                    "/webjars/**"
+                    "/webjars/**",
+                    "/chat"
                 ).permitAll().anyExchange().authenticated()
             }
             .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
