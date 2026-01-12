@@ -31,15 +31,6 @@ jobs:
             tklcat/takealook-backend:${{ github.ref_name }}
             tklcat/takealook-backend:latest
 
-      - name: Copy docker-compose.yml to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: ${{ secrets.DEPLOY_PATH }}
-
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -47,17 +38,27 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            sudo docker pull tklcat/takealook-backend:${{ github.ref_name }}
             
-            export TAG=${{ github.ref_name }}
-            export DB_USERNAME=${{ secrets.DB_USERNAME }}
-            export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
-            export DB_URL='${{ secrets.DB_URL }}'
-            export JWT_SECURE='${{ secrets.JWT_SECURE }}'
-            export R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
-            export R2_ACCESS_KEY=${{ secrets.R2_ACCESS_KEY }}
-            export R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }}
-            export R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }}
+            # Ensure Redis is running
+            sudo docker inspect redis > /dev/null 2>&1 || \
+              sudo docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:7-alpine
             
-            sudo docker compose pull app
-            sudo docker compose up -d
+            # Stop and remove old app container
+            sudo docker stop app || true
+            sudo docker rm app || true
+            
+            # Run new app container with Redis link
+            sudo docker run -d --name app -p 8080:8080 \
+              --link redis:redis \
+              -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
+              -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+              -e DB_URL='${{ secrets.DB_URL }}' \
+              -e JWT_SECURE='${{ secrets.JWT_SECURE }}' \
+              -e R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }} \
+              -e R2_ACCESS_KEY=${{ secrets.R2_ACCESS_KEY }} \
+              -e R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }} \
+              -e R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }} \
+              -e REDIS_HOST=redis \
+              -e REDIS_PORT=6379 \
+              tklcat/takealook-backend:${{ github.ref_name }}
