@@ -14,4 +14,10 @@ class ChatRoomUsersRepositoryImpl(
         repository.findByRoomId(roomId)
             .map(ChatRoomUsersEntity::toExternal)
             .toList()
+
+    override suspend fun existsByUserIdAndRoomId(userId: Long, roomId: Long): Boolean =
+        repository.existsByUserIdAndRoomId(userId, roomId)
+
+    override suspend fun save(chatUser: ChatUser): ChatUser =
+        repository.save(chatUser.fromExternal()).toExternal()
 }
