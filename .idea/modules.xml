@@ -2,7 +2,37 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/takealook-backend.iml" filepath="$PROJECT_DIR$/.idea/takealook-backend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/build-logic/build-logic.iml" filepath="$PROJECT_DIR$/.idea/modules/build-logic/build-logic.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.iml" filepath="$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.main.iml" filepath="$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.test.iml" filepath="$PROJECT_DIR$/.idea/modules/build-logic/convention/build-logic.convention.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/takealook-backend.iml" filepath="$PROJECT_DIR$/.idea/modules/takealook-backend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.test.iml" filepath="$PROJECT_DIR$/.idea/modules/app/takealook-backend.app.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/takealook-backend.core.iml" filepath="$PROJECT_DIR$/.idea/modules/core/takealook-backend.core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.iml" filepath="$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core/data/takealook-backend.core.data.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.iml" filepath="$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core/domain/takealook-backend.core.domain.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.iml" filepath="$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core/model/takealook-backend.core.model.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/takealook-backend.feature.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/takealook-backend.feature.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.main.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.test.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/auth/takealook-backend.feature.auth.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.main.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.test.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/chat/takealook-backend.feature.chat.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.main.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.test.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/stickers/takealook-backend.feature.stickers.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.main.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.test.iml" filepath="$PROJECT_DIR$/.idea/modules/feature/storage/takealook-backend.feature.storage.test.iml" />
     </modules>
   </component>
 </project>
