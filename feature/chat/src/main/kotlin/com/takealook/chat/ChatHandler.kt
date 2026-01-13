@@ -8,6 +8,8 @@ import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.chat.users.JoinChatRoomUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
+import com.takealook.model.MessageType
+import com.takealook.model.UserChatMessage
 import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
@@ -32,7 +34,6 @@ class ChatHandler(
     private val allowedOriginsConfig: String
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
-    // Multi-session support: one user can have multiple sessions (different browsers/devices)
     private val sessions = ConcurrentHashMap<Long, MutableSet<WebSocketSession>>()
 
     private val allowedOrigins: Set<String> by lazy {
@@ -46,90 +47,102 @@ class ChatHandler(
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
 
-        val ticket = session.handshakeInfo.uri.query
-            ?.split("&")
-            ?.firstOrNull { it.startsWith("ticket=") }
-            ?.substringAfter("ticket=")
+        val query = session.handshakeInfo.uri.query ?: ""
+        val params = query.split("&").associate { 
+            val parts = it.split("=")
+            parts[0] to (parts.getOrNull(1) ?: "")
+        }
 
-        if (ticket == null) {
-            logger.warn("Missing ticket in WebSocket handshake for session ${session.id}")
+        val ticket = params["ticket"]
+        val roomId = params["roomId"]?.toLongOrNull()
+
+        if (ticket == null || roomId == null) {
+            logger.warn("Missing ticket or roomId in WebSocket handshake")
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
 
         val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
         if (ticketData == null) {
-            logger.warn("Invalid or expired ticket for session ${session.id}")
+            logger.warn("Invalid or expired ticket")
             return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
         }
 
         val userId = ticketData.userId
 
-        val roomId = session.handshakeInfo.uri.query
-            ?.split("&")
-            ?.firstOrNull { it.startsWith("roomId=") }
-            ?.substringAfter("roomId=")
-            ?.toLongOrNull()
-
-        if (roomId == null) {
-            logger.warn("Missing roomId in WebSocket handshake for session ${session.id}")
-            return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
-        }
-
-        getUserProfileByIdUseCase(userId) ?: run {
-            logger.error("User not found in WebSocket session for ${session.id}")
+        val userProfile = getUserProfileByIdUseCase(userId) ?: run {
+            logger.error("User not found: $userId")
             return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull()
         }
 
         joinChatRoomUseCase(userId, roomId)
 
-        sessions.computeIfAbsent(userId) { ConcurrentHashMap.newKeySet() }.add(session)
-        logger.info("WebSocket session established for user $userId (${ticketData.username}, Session ID: ${session.id}, Room: $roomId)")
+        val userSessions = sessions.computeIfAbsent(userId) { ConcurrentHashMap.newKeySet() }
+        val isFirstSession = userSessions.isEmpty()
+        userSessions.add(session)
+        
+        logger.info("WebSocket session established for user $userId, Room: $roomId, First: $isFirstSession")
+
+        // Broadcast JOIN message if it's the first session for this user
+        if (isFirstSession) {
+            broadcastSystemMessage(roomId, userId, MessageType.JOIN)
+        }
 
         val incoming = session.receive()
             .map { it.payloadAsText }
             .flatMap { msg ->
                 mono {
                     val chatMessage = objectMapper.readValue<ChatMessage>(msg)
-                    val userProfile = getUserProfileByIdUseCase(userId) ?: return@mono null
-                    val messageToSend = chatMessage
-                        .toUserChatMessage(userProfile)
-                        .let(objectMapper::writeValueAsString)
+                    val profile = getUserProfileByIdUseCase(userId) ?: return@mono null
+                    val userChatMessage = chatMessage.toUserChatMessage(profile)
+                    val messageToSend = objectMapper.writeValueAsString(userChatMessage)
 
                     saveMessageUseCase(chatMessage)
-                    logger.info("Received message from {}: {}", userId, chatMessage)
-
-                    val users = getChatUsersByRoomIdUseCase(chatMessage.roomId)
-                    users.forEach { user ->
-                        val userSessions = sessions[user.userId] ?: return@forEach
-                        userSessions.filter { it.isOpen }.forEach { targetSession ->
-                            logger.info("Distributing message to user {} (session {}): {}", user.userId, targetSession.id, chatMessage)
-
-                            targetSession.send(
-                                Mono.just(
-                                    targetSession.textMessage(messageToSend)
-                                )
-                            ).doOnError {
-                                e -> logger.error("Error sending message to user ${user.userId}: ${e.message}", e)
-                            }.onErrorResume { e ->
-                                logger.error("Resume from send error to user ${user.userId}: ${e.message}", e)
-                                Mono.empty()
-                            }.awaitSingleOrNull()
-                        }
-                    }
+                    broadcastToRoom(chatMessage.roomId, messageToSend)
                 }
             }
-            .doOnError { e -> logger.error("Error in incoming stream for user $userId: ${e.message}", e) }
+            .doOnError { e -> logger.error("Incoming stream error for user $userId: ${e.message}") }
             .then()
 
         return@mono Mono.`when`(incoming)
             .doFinally { signalType ->
-                sessions.computeIfPresent(userId) { _, sessionSet ->
+                val remainingSessions = sessions.computeIfPresent(userId) { _, sessionSet ->
                     sessionSet.remove(session)
                     if (sessionSet.isEmpty()) null else sessionSet
                 }
-                logger.info("WebSocket session for user $userId (Session ID: ${session.id}) closed with status: $signalType")
+                
+                val isLastSession = remainingSessions == null
+                logger.info("Session closed for user $userId, Last: $isLastSession, Signal: $signalType")
+                
+                if (isLastSession) {
+                    mono {
+                        broadcastSystemMessage(roomId, userId, MessageType.LEAVE)
+                    }.subscribe()
+                }
             }
-            .doOnError { e -> logger.error("WebSocket session for user $userId terminated unexpectedly: ${e.message}", e) }
             .awaitSingleOrNull()
+    }
+
+    private suspend fun broadcastToRoom(roomId: Long, messageJson: String) {
+        val users = getChatUsersByRoomIdUseCase(roomId)
+        users.forEach { user ->
+            sessions[user.userId]?.filter { it.isOpen }?.forEach { targetSession ->
+                targetSession.send(Mono.just(targetSession.textMessage(messageJson)))
+                    .doOnError { e -> logger.error("Broadcast error to user ${user.userId}: ${e.message}") }
+                    .onErrorResume { Mono.empty() }
+                    .awaitSingleOrNull()
+            }
+        }
+    }
+
+    private suspend fun broadcastSystemMessage(roomId: Long, userId: Long, type: MessageType) {
+        val profile = getUserProfileByIdUseCase(userId) ?: return
+        val systemMessage = UserChatMessage(
+            roomId = roomId,
+            sender = profile,
+            type = type,
+            imageUrl = null
+        )
+        val messageJson = objectMapper.writeValueAsString(systemMessage)
+        broadcastToRoom(roomId, messageJson)
     }
 }
