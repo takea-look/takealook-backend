@@ -5,15 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cd1ac4ea-4497-4ccf-8670-0b84aab48524" name="변경" comment="[takea-look#38] 채팅 &gt; configuration 최신화">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/deploy.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/deploy.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/kotlin/com/takealook/SwaggerConfiguration.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/kotlin/com/takealook/SwaggerConfiguration.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/configuration/SecurityConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/configuration/SecurityConfig.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/chat/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/chat/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/chat/src/main/kotlin/com/takealook/chat/ChatHandler.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/chat/src/main/kotlin/com/takealook/chat/ChatHandler.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/feature/auth/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/taskmaster" beforeDir="false" afterPath="$PROJECT_DIR$/taskmaster" afterDir="false" />
     </list>
@@ -30,6 +24,9 @@
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
         <projects_view>
           <tree_state>
             <expand>
@@ -90,7 +87,9 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Gradle.Build takealook-backend.executor": "Run",
+    "Gradle.ChatHandlerTest.executor": "Run",
     "Gradle.Download Sources.executor": "Run",
+    "Gradle.WsTicketServiceTest.executor": "Run",
     "RequestMappingsPanelOrder0": "0",
     "RequestMappingsPanelOrder1": "1",
     "RequestMappingsPanelWidth0": "75",

@@ -9,12 +9,9 @@ import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.model.User
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.takealook.auth.component.TossAuthService
+import com.takealook.auth.model.TossLoginRequest
 
 @Tag(name = "Authentication", description = "인증 관리 API")
 @RestController
@@ -23,7 +20,9 @@ class AuthController(
     private val getUserByNameUseCase: GetUserByNameUseCase,
     private val saveUserUseCase: SaveUserUseCase,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtTokenProvider: JwtTokenProvider
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val tossAuthService: TossAuthService,
+    private val objectMapper: ObjectMapper
 ) {
 
     @Operation(
@@ -62,5 +61,75 @@ class AuthController(
         )
 
         saveUserUseCase(user)
+    }
+
+    @Operation(
+        summary = "토스 로그인",
+        description = "토스 앱에서 받은 암호화된 토큰으로 로그인합니다.",
+        security = []
+    )
+    @PostMapping("/toss/signin")
+    suspend fun loginWithToss(@RequestBody request: TossLoginRequest): LoginResponse {
+        val decryptedJson = tossAuthService.decryptToken(request.encryptedToken)
+        
+        val userInfo = objectMapper.readTree(decryptedJson)
+        val tossUserId = userInfo.get("id")?.asText() 
+            ?: throw InvalidCredentialsException("Invalid Toss Token Payload")
+            
+        val internalUsername = "toss_$tossUserId"
+        
+        var user = getUserByNameUseCase(internalUsername)
+        if (user == null) {
+            user = User(
+                username = internalUsername,
+                password = passwordEncoder.encode("TOSS_AUTH_USER")
+            )
+            saveUserUseCase(user)
+        }
+        
+        val token = jwtTokenProvider.createToken(user.username)
+        return LoginResponse(token)
+    }
+}
+
+        val user = User(
+            username = signupRequest.username,
+            password = passwordEncoder.encode(signupRequest.password)
+        )
+
+        saveUserUseCase(user)
+    }
+
+    @Operation(
+        summary = "토스 로그인",
+        description = "토스 앱에서 받은 암호화된 토큰으로 로그인합니다.",
+        security = []
+    )
+    @PostMapping("/toss/signin")
+    suspend fun loginWithToss(@RequestBody request: TossLoginRequest): LoginResponse {
+        // 1. Decrypt Token
+        val decryptedJson = tossAuthService.decryptToken(request.encryptedToken)
+        
+        // 2. Parse User Info (Assuming 'id' is present in the payload)
+        val userInfo = objectMapper.readTree(decryptedJson)
+        val tossUserId = userInfo.get("id")?.asText() 
+            ?: throw InvalidCredentialsException("Invalid Toss Token Payload")
+            
+        // 3. Map to Internal Username (e.g., "toss_{id}")
+        val internalUsername = "toss_$tossUserId"
+        
+        // 4. Find or Create User
+        var user = getUserByNameUseCase(internalUsername)
+        if (user == null) {
+            user = User(
+                username = internalUsername,
+                password = passwordEncoder.encode("TOSS_AUTH_USER") // Dummy password
+            )
+            saveUserUseCase(user)
+        }
+        
+        // 5. Generate JWT
+        val token = jwtTokenProvider.createToken(user.username)
+        return LoginResponse(token)
     }
 }
