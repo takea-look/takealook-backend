@@ -23,6 +23,7 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version = "9.37.3" }
 springdoc-openapi-webflux-ui = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version = "2.6.0" }
 webjars-locator-core = { module = "org.webjars:webjars-locator-core" }
 swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version = "2.2.22" }
