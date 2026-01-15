@@ -59,6 +59,7 @@ jobs:
               -e R2_ACCESS_KEY=${{ secrets.R2_ACCESS_KEY }} \
               -e R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }} \
               -e R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }} \
+              -e TOSS_DECRYPTION_KEY='${{ secrets.TOSS_DECRYPTION_KEY }}' \
               -e REDIS_HOST=redis \
               -e REDIS_PORT=6379 \
               tklcat/takealook-backend:${{ github.ref_name }}

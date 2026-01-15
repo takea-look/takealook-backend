@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
+    implementation(libs.nimbus.jose.jwt)
 }
 
 tasks.withType<Test> {
