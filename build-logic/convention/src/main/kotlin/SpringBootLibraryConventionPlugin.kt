@@ -11,6 +11,13 @@ class SpringBootLibraryConventionPlugin : Plugin<Project> {
             configureKotlinModule()
             configureWebFlux()
             configurePostgreSql()
+
+            tasks.matching { it.name == "bootJar" }.configureEach {
+                enabled = false
+            }
+            tasks.matching { it.name == "jar" }.configureEach {
+                enabled = true
+            }
         }
     }
 }

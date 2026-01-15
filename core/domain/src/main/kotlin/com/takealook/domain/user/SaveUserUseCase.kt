@@ -18,6 +18,6 @@ class SaveUserUseCase(
             id = saved.id ?: 0,
             username = saved.username,
         )
-        profileRepository.insert(newProfile)
+        profileRepository.save(newProfile)
     }
 }

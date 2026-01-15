@@ -21,3 +21,12 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// Disable bootJar for library module
+tasks.named("bootJar") {
+    enabled = false
+}
+
+tasks.named("jar") {
+    enabled = true
+}

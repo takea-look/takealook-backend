@@ -11,6 +11,14 @@ data class User(
     val username: String,
     @Schema(description = "비밀번호 (해시됨)", accessMode = Schema.AccessMode.WRITE_ONLY)
     val password: String,
+    @Schema(description = "토스 사용자 고유 ID")
+    val tossUserKey: Long? = null,
+    @Schema(description = "실명 (복호화됨)", accessMode = Schema.AccessMode.WRITE_ONLY)
+    val tossName: String? = null,
+    @Schema(description = "전화번호 (복호화됨)", accessMode = Schema.AccessMode.WRITE_ONLY)
+    val tossPhone: String? = null,
+    @Schema(description = "이메일 (복호화됨)", accessMode = Schema.AccessMode.WRITE_ONLY)
+    val tossEmail: String? = null
 )
 
 @Schema(description = "사용자 프로필 정보")

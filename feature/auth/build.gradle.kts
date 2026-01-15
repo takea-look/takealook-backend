@@ -16,12 +16,27 @@ dependencies {
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
     implementation(libs.nimbus.jose.jwt)
+    
+    // Toss API dependencies
+    implementation(libs.okhttp)
+    implementation(libs.bouncycastle)
+    implementation(libs.jackson.module.kotlin)
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {
     freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
+}
+
+// Disable bootJar for library module
+tasks.named("bootJar") {
+    enabled = false
+}
+
+tasks.named("jar") {
+    enabled = true
 }
