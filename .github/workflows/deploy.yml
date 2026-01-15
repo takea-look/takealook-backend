@@ -44,6 +44,11 @@ jobs:
             sudo docker inspect redis > /dev/null 2>&1 || \
               sudo docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:7-alpine
             
+            # Create cert directory and files
+            sudo mkdir -p /app/cert
+            echo "${{ secrets.TOSS_CERT_PUBLIC }}" | sudo tee /app/cert/public.crt > /dev/null
+            echo "${{ secrets.TOSS_KEY_PRIVATE }}" | sudo tee /app/cert/private.key > /dev/null
+            
             # Stop and remove old app container
             sudo docker stop app || true
             sudo docker rm app || true
@@ -51,6 +56,7 @@ jobs:
             # Run new app container with Redis link
             sudo docker run -d --name app -p 8080:8080 \
               --link redis:redis \
+              -v /app/cert:/app/cert \
               -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
               -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
               -e DB_URL='${{ secrets.DB_URL }}' \
@@ -60,6 +66,9 @@ jobs:
               -e R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }} \
               -e R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }} \
               -e TOSS_DECRYPTION_KEY='${{ secrets.TOSS_DECRYPTION_KEY }}' \
+              -e TOSS_AAD='${{ secrets.TOSS_AAD }}' \
+              -e TOSS_API_CERT_PATH=/app/cert/public.crt \
+              -e TOSS_API_KEY_PATH=/app/cert/private.key \
               -e REDIS_HOST=redis \
               -e REDIS_PORT=6379 \
               tklcat/takealook-backend:${{ github.ref_name }}
