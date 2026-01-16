@@ -10,11 +10,21 @@ class SaveUserUseCase(
 ) {
     suspend operator fun invoke(user: User) {
         val saved = repository.save(user)
+        val userId = saved.id ?: 0
 
-        val newProfile = UserProfile(
-            id = saved.id ?: 0,
-            username = saved.username,
-        )
-        profileRepository.save(newProfile)
+        val existingProfile = profileRepository.findByUserId(userId)
+
+        if (existingProfile == null) {
+            val newProfile = UserProfile(
+                id = userId,
+                username = saved.username,
+            )
+            profileRepository.insert(newProfile)
+        } else {
+            val updatedProfile = existingProfile.copy(
+                username = saved.username
+            )
+            profileRepository.save(updatedProfile)
+        }
     }
 }
