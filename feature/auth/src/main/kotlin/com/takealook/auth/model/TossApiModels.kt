@@ -37,8 +37,6 @@ data class UserInfo(
     val name: String?,
     val phone: String?,
     val birthday: String?,
-    val ci: String?,
-    val di: String?,
     val gender: String?,
     val nationality: String?,
     val email: String?

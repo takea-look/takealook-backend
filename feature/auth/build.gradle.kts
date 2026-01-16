@@ -32,7 +32,6 @@ compileKotlin.compilerOptions {
     freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
 
-// Disable bootJar for library module
 tasks.named("bootJar") {
     enabled = false
 }

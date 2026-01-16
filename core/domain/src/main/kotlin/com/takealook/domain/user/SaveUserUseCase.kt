@@ -9,10 +9,7 @@ class SaveUserUseCase(
     private val profileRepository: UserProfileRepository
 ) {
     suspend operator fun invoke(user: User) {
-        repository.save(user)
-        val saved = repository.findByUserName(user.username)
-
-        if (saved == null) return
+        val saved = repository.save(user)
 
         val newProfile = UserProfile(
             id = saved.id ?: 0,

@@ -33,8 +33,7 @@ class AuthController(
     private val saveUserUseCase: SaveUserUseCase,
     private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val tossAuthService: TossAuthService,
-    private val objectMapper: ObjectMapper
+    private val tossAuthService: TossAuthService
 ) {
 
     @Operation(
@@ -44,7 +43,6 @@ class AuthController(
     )
     @PostMapping("/signin")
     suspend fun login(@RequestBody loginRequest: LoginRequest): LoginResponse {
-        println("request : $loginRequest")
         val user = getUserByNameUseCase(loginRequest.username)
             ?: throw InvalidCredentialsException("Invalid username or password")
 

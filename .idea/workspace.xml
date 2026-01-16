@@ -6,19 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="cd1ac4ea-4497-4ccf-8670-0b84aab48524" name="변경" comment="[takea-look#38] 채팅 &gt; configuration 최신화">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build-logic/convention/src/main/kotlin/SpringBootLibraryConventionPlugin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/build-logic/convention/src/main/kotlin/SpringBootLibraryConventionPlugin.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/data/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/core/data/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/domain/src/main/kotlin/com/takealook/domain/user/SaveUserUseCase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core/domain/src/main/kotlin/com/takealook/domain/user/SaveUserUseCase.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/model/src/main/kotlin/com.takealook.model/User.kt" beforeDir="false" afterPath="$PROJECT_DIR$/core/model/src/main/kotlin/com.takealook.model/User.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/feature/auth/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/AuthController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/AuthController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/component/TossAuthService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/component/TossAuthService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/config/TossApiConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/config/TossApiConfig.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/LoginResponse.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/LoginResponse.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/TossLoginRequest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/TossLoginRequest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/chat/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/chat/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/stickers/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/stickers/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feature/storage/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/feature/storage/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/TossApiModels.kt" beforeDir="false" afterPath="$PROJECT_DIR$/feature/auth/src/main/kotlin/com/takealook/auth/model/TossApiModels.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/taskmaster" beforeDir="false" afterPath="$PROJECT_DIR$/taskmaster" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

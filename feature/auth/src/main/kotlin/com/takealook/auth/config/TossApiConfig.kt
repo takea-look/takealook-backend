@@ -5,6 +5,7 @@ import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -28,6 +29,8 @@ class TossApiConfig(
     private val keyPath: String
 ) {
 
+    private val logger = LoggerFactory.getLogger(TossApiConfig::class.java)
+
     init {
         Security.addProvider(BouncyCastleProvider())
     }
@@ -45,7 +48,7 @@ class TossApiConfig(
                 throw IllegalArgumentException("Toss key file not found: $keyPath")
             }
 
-            println("INFO: Toss mTLS configured with cert=$certPath, key=$keyPath")
+            logger.info("Toss mTLS configured with cert=$certPath, key=$keyPath")
 
             val (sslContext, trustManager) = createSSLContext(certFile, keyFile)
 
@@ -55,8 +58,8 @@ class TossApiConfig(
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .build()
         } else {
-            println("WARNING: mTLS certificates not configured. Toss API calls will fail in production.")
-            println("Set toss.api.cert-path and toss.api.key-path in application.properties")
+            logger.warn("mTLS certificates not configured. Toss API calls will fail in production.")
+            logger.warn("Set toss.api.cert-path and toss.api.key-path in application.properties")
             OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -66,7 +69,9 @@ class TossApiConfig(
 
     private fun createSSLContext(certFile: File, keyFile: File): Pair<javax.net.ssl.SSLContext, javax.net.ssl.X509TrustManager> {
         val certFactory = CertificateFactory.getInstance("X.509")
-        val certificate = certFactory.generateCertificate(java.io.FileInputStream(certFile)) as X509Certificate
+        val certificate = java.io.FileInputStream(certFile).use { inputStream ->
+            certFactory.generateCertificate(inputStream) as X509Certificate
+        }
 
         val privateKey = readPrivateKey(keyFile)
 
@@ -101,6 +106,7 @@ class TossApiConfig(
         FileReader(keyFile).use { reader ->
             val pemParser = PEMParser(reader)
             val privateKeyObject = pemParser.readObject()
+                ?: throw IllegalArgumentException("Empty or invalid PEM file: no object read")
 
             return when (privateKeyObject) {
                 is org.bouncycastle.asn1.pkcs.PrivateKeyInfo -> {
