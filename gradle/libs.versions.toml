@@ -5,6 +5,9 @@ kotlin = "2.2.0"
 coroutines = "1.7.2"
 jjwt = "0.12.5"
 aws = "2.34.0"
+nimbus = "9.37.3"
+okhttp = "4.12.0"
+bouncycastle = "1.78.1"
 
 [libraries]
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
@@ -23,10 +26,12 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
-nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version = "9.37.3" }
+nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus" }
 springdoc-openapi-webflux-ui = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version = "2.6.0" }
 webjars-locator-core = { module = "org.webjars:webjars-locator-core" }
 swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version = "2.2.22" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+bouncycastle = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
 
 # Test
 mockk = { module = "io.mockk:mockk", version = "1.13.13" }

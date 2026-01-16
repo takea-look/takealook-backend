@@ -10,3 +10,11 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.named("bootJar") {
+    enabled = false
+}
+
+tasks.named("jar") {
+    enabled = true
+}
