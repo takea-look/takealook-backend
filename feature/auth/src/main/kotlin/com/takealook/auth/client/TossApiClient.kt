@@ -2,6 +2,8 @@ package com.takealook.auth.client
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.takealook.auth.model.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -16,11 +18,11 @@ class TossApiClient(
 
     private val jsonMediaType = "application/json".toMediaType()
 
-    private fun <T> get(
+    private suspend fun <T> get(
         path: String,
         responseType: Class<T>,
         headers: Map<String, String> = emptyMap()
-    ): T {
+    ): T = withContext(Dispatchers.IO) {
         val requestBuilder = Request.Builder()
             .url("$baseUrl$path")
             .get()
@@ -37,15 +39,15 @@ class TossApiClient(
         }
 
         val responseBody = response.body?.string() ?: throw RuntimeException("Empty response")
-        return objectMapper.readValue(responseBody, responseType)
+        objectMapper.readValue(responseBody, responseType)
     }
 
-    private fun <T> post(
+    private suspend fun <T> post(
         path: String,
         requestBody: Any,
         responseType: Class<T>,
         headers: Map<String, String> = emptyMap()
-    ): T {
+    ): T = withContext(Dispatchers.IO) {
         val requestBuilder = Request.Builder()
             .url("$baseUrl$path")
             .post(requestBody.toJson())
@@ -62,7 +64,7 @@ class TossApiClient(
         }
 
         val responseBody = response.body?.string() ?: throw RuntimeException("Empty response")
-        return objectMapper.readValue(responseBody, responseType)
+        objectMapper.readValue(responseBody, responseType)
     }
 
     private fun Any.toJson(): RequestBody {
@@ -70,7 +72,7 @@ class TossApiClient(
         return json.toRequestBody(jsonMediaType)
     }
 
-    fun generateToken(request: GenerateTokenRequest): GenerateTokenResponse {
+    suspend fun generateToken(request: GenerateTokenRequest): GenerateTokenResponse {
         return post(
             "/api-partner/v1/apps-in-toss/user/oauth2/generate-token",
             request,
@@ -78,7 +80,7 @@ class TossApiClient(
         )
     }
 
-    fun refreshToken(request: RefreshTokenRequest): RefreshTokenResponse {
+    suspend fun refreshToken(request: RefreshTokenRequest): RefreshTokenResponse {
         return post(
             "/api-partner/v1/apps-in-toss/user/oauth2/refresh-token",
             request,
@@ -86,7 +88,7 @@ class TossApiClient(
         )
     }
 
-    fun getUserInfo(accessToken: String): GetUserInfoResponse {
+    suspend fun getUserInfo(accessToken: String): GetUserInfoResponse {
         return get(
             "/api-partner/v1/apps-in-toss/user/oauth2/login-me",
             GetUserInfoResponse::class.java,
@@ -94,7 +96,7 @@ class TossApiClient(
         )
     }
 
-    fun logoutByAccessToken(accessToken: String): LogoutResponse {
+    suspend fun logoutByAccessToken(accessToken: String): LogoutResponse {
         return post(
             "/api-partner/v1/apps-in-toss/user/oauth2/access/remove-by-access-token",
             EmptyRequest,
@@ -103,7 +105,7 @@ class TossApiClient(
         )
     }
 
-    fun logoutByUserKey(userKey: Long): LogoutResponse {
+    suspend fun logoutByUserKey(userKey: Long): LogoutResponse {
         return post(
             "/api-partner/v1/apps-in-toss/user/oauth2/access/remove-by-user-key",
             mapOf("userKey" to userKey),

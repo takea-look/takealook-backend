@@ -15,7 +15,7 @@ class TossAuthService(
     private val tossApiClient: TossApiClient
 ) {
 
-    fun exchangeToken(authorizationCode: String, referrer: String): Pair<String, String> {
+    suspend fun exchangeToken(authorizationCode: String, referrer: String): Pair<String, String> {
         val response = tossApiClient.generateToken(
             GenerateTokenRequest(authorizationCode, referrer)
         )
@@ -27,7 +27,7 @@ class TossAuthService(
         return response.success.accessToken to response.success.refreshToken
     }
 
-    fun refreshAccessToken(refreshToken: String): String {
+    suspend fun refreshAccessToken(refreshToken: String): String {
         val response = tossApiClient.refreshToken(
             RefreshTokenRequest(refreshToken)
         )
@@ -39,7 +39,7 @@ class TossAuthService(
         return response.success.accessToken
     }
 
-    fun getUserInfo(accessToken: String): UserInfo {
+    suspend fun getUserInfo(accessToken: String): UserInfo {
         val response = tossApiClient.getUserInfo(accessToken)
 
         if (response.resultType != "SUCCESS" || response.success == null) {
@@ -49,7 +49,7 @@ class TossAuthService(
         return response.success
     }
 
-    fun logoutByAccessToken(accessToken: String) {
+    suspend fun logoutByAccessToken(accessToken: String) {
         val response = tossApiClient.logoutByAccessToken(accessToken)
 
         if (response.resultType != "SUCCESS") {
@@ -57,7 +57,7 @@ class TossAuthService(
         }
     }
 
-    fun logoutByUserKey(userKey: Long) {
+    suspend fun logoutByUserKey(userKey: Long) {
         val response = tossApiClient.logoutByUserKey(userKey)
 
         if (response.resultType != "SUCCESS") {

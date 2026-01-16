@@ -56,6 +56,11 @@ class SecurityConfig(
                 it.pathMatchers(
                     "/auth/signin",
                     "/auth/signup",
+                    "/auth/toss/signin",
+                    "/auth/toss/refresh",
+                    "/auth/toss/userinfo",
+                    "/auth/toss/logout",
+                    "/auth/toss/logout/user-key",
                     "/stickers",
                     "/sticker-categories",
                     "/swagger-ui.html",
