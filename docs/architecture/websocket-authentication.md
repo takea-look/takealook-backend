@@ -111,6 +111,23 @@ ws.ticket.ttl-seconds=30
 ws.allowed-origins=https://takealook.app,http://localhost:3000
 ```
 
+### Redis 저장 구조/TTL
+- Key: `ws-ticket:{uuid}`
+- Value(JSON): `{ "userId": <long>, "username": <string> }`
+- TTL: `WS_TICKET_TTL` seconds (default 30)
+- Consume: WS handshake 시 `getAndDelete`로 **원자적 1회성** 보장
+
+### 실패 케이스/에러코드(현재 구현)
+- close `1002 (POLICY_VIOLATION)`
+  - ticket/roomId 누락
+  - origin 불일치(allowed origins 외)
+- close `1003 (NOT_ACCEPTABLE)`
+  - 티켓 만료/무효(또는 이미 consume됨)
+- close `1007 (BAD_DATA)`
+  - 티켓은 유효하나 사용자 프로필을 찾지 못함
+
+> room scope: 현재 티켓 데이터에 roomId가 포함되지 않아, room mismatch를 검증하지 않습니다(추후 개선 후보).
+
 ### 환경변수
 
 | 변수 | 설명 | 기본값 |
