@@ -2,7 +2,9 @@ package com.takealook.auth
 
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
+import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
+import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.LoginRequest
 import com.takealook.model.auth.LoginResponse
 import com.takealook.model.auth.LogoutByUserKeyRequest
@@ -33,7 +35,8 @@ class AuthController(
     private val saveUserUseCase: SaveUserUseCase,
     private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val tossAuthService: TossAuthService
+    private val tossAuthService: TossAuthService,
+    private val googleAuthService: GoogleAuthService,
 ) {
 
     @Operation(
@@ -71,6 +74,32 @@ class AuthController(
         )
 
         saveUserUseCase(user)
+    }
+
+    @Operation(
+        summary = "Google 로그인",
+        description = "Google ID Token으로 로그인합니다.",
+        security = []
+    )
+    @PostMapping("/google/signin")
+    suspend fun loginWithGoogle(@RequestBody request: GoogleLoginRequest): LoginResponse {
+        val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
+        val sub = tokenInfo.sub ?: throw RuntimeException("Invalid google token")
+
+        val internalUsername = "google_${sub}"
+
+        var user = getUserByNameUseCase(internalUsername)
+        if (user == null) {
+            val randomPassword = UUID.randomUUID().toString()
+            user = User(
+                username = internalUsername,
+                password = passwordEncoder.encode(randomPassword),
+            )
+            saveUserUseCase(user)
+        }
+
+        val internalToken = jwtTokenProvider.createToken(internalUsername)
+        return LoginResponse(internalToken)
     }
 
     @Operation(
