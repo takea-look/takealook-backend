@@ -7,7 +7,14 @@
 
 ### `GET /chat/rooms`
 - 설명: 사용자가 참여 중인 채팅방 목록 조회
-- 요청: (현재 구현상 별도 파라미터 없음)
+- 현재 구현:
+  - 요청: (별도 파라미터 없음)
+  - 정렬: DB `findAll()` 결과 순서(=정렬 미보장)
+  - 페이징: 없음
+- 제안 스펙(확정 필요):
+  - 정렬: `sort=createdAt_desc|createdAt_asc` (default: `createdAt_desc`)
+  - 페이징: `cursor` 기반 또는 `page/limit` 기반 중 택1
+  - 필터: `isPublic=true|false` optional
 - 응답: `ChatRoom[]`
 
 ### `GET /chat/messages?roomId={roomId}`
