@@ -4,12 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
+import com.takealook.domain.chat.reaction.AddReactionUseCase
+import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.chat.users.JoinChatRoomUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
+import com.takealook.chat.reaction.ReactionCommand
 import com.takealook.model.ChatMessage
+import com.takealook.model.ChatReaction
 import com.takealook.model.MessageType
 import com.takealook.model.UserChatMessage
+import com.takealook.model.UserChatReaction
 import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
@@ -28,6 +33,8 @@ class ChatHandler(
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
     private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val saveMessageUseCase: SaveMessageUseCase,
+    private val addReactionUseCase: AddReactionUseCase,
+    private val removeReactionUseCase: RemoveReactionUseCase,
     private val wsTicketService: WsTicketService,
     private val joinChatRoomUseCase: JoinChatRoomUseCase,
     @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
@@ -91,6 +98,13 @@ class ChatHandler(
             .map { it.payloadAsText }
             .flatMap { msg ->
                 mono {
+                    val type = detectIncomingType(msg)
+                    if (type == MessageType.REACTION) {
+                        val command = objectMapper.readValue<ReactionCommand>(msg)
+                        handleReactionCommand(command)
+                        return@mono null
+                    }
+
                     val chatMessage = objectMapper.readValue<ChatMessage>(msg)
                     val profile = getUserProfileByIdUseCase(userId) ?: return@mono null
                     val userChatMessage = chatMessage.toUserChatMessage(profile)
@@ -121,6 +135,47 @@ class ChatHandler(
                 }
             }
             .awaitSingleOrNull()
+    }
+
+    private fun detectIncomingType(rawJson: String): MessageType {
+        return try {
+            val node = objectMapper.readTree(rawJson)
+            val typeText = node.get("type")?.asText()?.uppercase()
+            if (typeText == "REACTION") MessageType.REACTION else MessageType.CHAT
+        } catch {
+            MessageType.CHAT
+        }
+    }
+
+    private suspend fun handleReactionCommand(command: ReactionCommand) {
+        val action = command.action.lowercase()
+        if (action != "add" && action != "remove") {
+            logger.warn("Invalid reaction action: ${command.action}")
+            return
+        }
+
+        if (action == "add") {
+            addReactionUseCase(
+                ChatReaction(
+                    messageId = command.messageId,
+                    userId = command.userId,
+                    reaction = command.reaction,
+                    createdAt = System.currentTimeMillis(),
+                )
+            )
+        } else {
+            removeReactionUseCase(command.messageId, command.userId, command.reaction)
+        }
+
+        val payload = UserChatReaction(
+            roomId = command.roomId,
+            messageId = command.messageId,
+            userId = command.userId,
+            reaction = command.reaction,
+            createdAt = System.currentTimeMillis(),
+        )
+
+        broadcastToRoom(command.roomId, objectMapper.writeValueAsString(payload))
     }
 
     private suspend fun broadcastToRoom(roomId: Long, messageJson: String) {

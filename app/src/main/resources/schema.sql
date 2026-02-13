@@ -51,4 +51,13 @@ CREATE TABLE IF NOT EXISTS chat_room_users(
     room_id INT NOT NULL REFERENCES chat_rooms(id),
     joined_at BIGINT NOT NULL,
     UNIQUE(user_id, room_id)
+);
+
+CREATE TABLE IF NOT EXISTS chat_message_reactions (
+    id BIGSERIAL PRIMARY KEY,
+    message_id BIGINT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reaction VARCHAR(64) NOT NULL,
+    created_at BIGINT NOT NULL,
+    UNIQUE(message_id, user_id, reaction)
 )
