@@ -1,6 +1,7 @@
 package com.takealook.auth.exception
 
 import com.takealook.domain.exceptions.InvalidCredentialsException
+import com.takealook.domain.exceptions.InvalidReplyToMessageException
 import com.takealook.domain.exceptions.ProfileNotFoundException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.domain.exceptions.UserNotFoundException
@@ -59,6 +60,18 @@ class GlobalExceptionHandler {
             status = status.value(),
             reason = "USER_NOT_FOUND",
             message = "User not found"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(InvalidReplyToMessageException::class)
+    fun handleInvalidReplyToMessageException(ex: InvalidReplyToMessageException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+        log.warn("InvalidReplyToMessageException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "INVALID_REPLY_TO_MESSAGE",
+            message = ex.message ?: "Invalid replyToId"
         )
         return ResponseEntity.status(status).body(errorResponse)
     }

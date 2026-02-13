@@ -96,6 +96,7 @@ class ChatHandler(
                     val userChatMessage = chatMessage.toUserChatMessage(profile)
                     val messageToSend = objectMapper.writeValueAsString(userChatMessage)
 
+                    // Persist first (so replyToId validation can fail fast)
                     saveMessageUseCase(chatMessage)
                     broadcastToRoom(chatMessage.roomId, messageToSend)
                 }

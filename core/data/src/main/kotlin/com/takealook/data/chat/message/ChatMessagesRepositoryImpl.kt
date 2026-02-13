@@ -12,6 +12,10 @@ class ChatMessagesRepositoryImpl(
         return repository.findByRoomId(roomId).map { it.toExternal() }
     }
 
+    override suspend fun findById(id: Long): ChatMessage? {
+        return repository.findById(id)?.toExternal()
+    }
+
     override suspend fun saveMessage(message: ChatMessage) =
         repository.save(message.fromExternal()).toExternal()
 }
