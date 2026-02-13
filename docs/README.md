@@ -5,6 +5,7 @@
 
 ## API Guides
 - [REST API 계약(초안)](./api/rest.md)
+- [Chat REST Controller 설계(초안)](./api/chat-rest.md)
 - [WebSocket 채팅 연결 가이드](./api/websocket-chat.md)
 
 ## Storage
