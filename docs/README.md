@@ -9,3 +9,7 @@
 
 ## Storage
 - [이미지 서빙 도메인 & 캐시 정책(초안)](./storage/image-serving.md)
+
+## Ops
+- [운영/배포 환경변수 정리](./ops/env.md)
+- [로깅/모니터링 최소 셋업(초안)](./ops/logging.md)

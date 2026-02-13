@@ -72,6 +72,8 @@ docker-compose up -d
 | R2_ACCESS_KEY | Cloudflare R2 액세스 키 | - |
 | R2_SECRET_KEY | Cloudflare R2 시크릿 키 | - |
 | R2_BUCKET_NAME | Cloudflare R2 버킷명 | - |
+| WS_TICKET_TTL | WebSocket ticket TTL (seconds) | 30 |
+| WS_ALLOWED_ORIGINS | WebSocket allowed origins (csv) | http://localhost:5173 |
 | REDIS_HOST | Redis 호스트 | localhost |
 | REDIS_PORT | Redis 포트 | 6379 |
 
