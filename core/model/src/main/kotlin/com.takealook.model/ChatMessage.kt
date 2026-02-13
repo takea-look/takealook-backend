@@ -6,5 +6,6 @@ data class ChatMessage(
     val senderId: Long,
     val imageUrl: String,
     val replyToId: Long?,
+    val isBlinded: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
 )

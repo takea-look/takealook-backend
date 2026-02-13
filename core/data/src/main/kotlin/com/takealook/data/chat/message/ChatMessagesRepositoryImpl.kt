@@ -16,6 +16,10 @@ class ChatMessagesRepositoryImpl(
         return repository.findById(id)?.toExternal()
     }
 
+    override suspend fun setBlinded(messageId: Long, blinded: Boolean): Boolean {
+        return repository.setBlinded(messageId, blinded) > 0
+    }
+
     override suspend fun saveMessage(message: ChatMessage) =
         repository.save(message.fromExternal()).toExternal()
 }

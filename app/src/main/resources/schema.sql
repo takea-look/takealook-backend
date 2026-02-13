@@ -34,7 +34,17 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     sender_id INT NOT NULL REFERENCES users(id),
     image_url VARCHAR(1024) NOT NULL,
     reply_to_id BIGINT REFERENCES chat_messages(id),
+    is_blinded BOOLEAN NOT NULL DEFAULT FALSE,
     created_at BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_message_reports (
+    id BIGSERIAL PRIMARY KEY,
+    message_id BIGINT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+    reporter_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason VARCHAR(255),
+    created_at BIGINT NOT NULL,
+    UNIQUE(message_id, reporter_user_id)
 );
 
 CREATE TABLE IF NOT EXISTS chat_rooms (

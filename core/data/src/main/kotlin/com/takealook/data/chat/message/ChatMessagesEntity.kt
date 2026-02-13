@@ -13,6 +13,7 @@ data class ChatMessagesEntity(
     val senderId: Long,
     val imageUrl: String,
     val replyToId: Long?,
+    val isBlinded: Boolean = false,
     val createdAt: Long,
 )
 
@@ -22,6 +23,7 @@ fun ChatMessagesEntity.toExternal() = ChatMessage(
     senderId = senderId,
     imageUrl = imageUrl,
     replyToId = replyToId,
+    isBlinded = isBlinded,
     createdAt = createdAt,
 )
 
@@ -31,5 +33,6 @@ fun ChatMessage.fromExternal() = ChatMessagesEntity(
     senderId = senderId,
     imageUrl = imageUrl,
     replyToId = replyToId,
+    isBlinded = isBlinded,
     createdAt = createdAt,
 )

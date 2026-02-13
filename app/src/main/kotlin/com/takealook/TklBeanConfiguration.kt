@@ -2,6 +2,7 @@ package com.takealook
 
 import com.takealook.data.chat.message.ChatMessagesRepositoryImpl
 import com.takealook.data.chat.reaction.ChatReactionsRepositoryImpl
+import com.takealook.data.chat.report.ChatMessageReportsRepositoryImpl
 import com.takealook.data.chat.room.ChatRoomsRepositoryImpl
 import com.takealook.data.chat.users.ChatRoomUsersRepositoryImpl
 import com.takealook.data.sticker.StickerCategoryRepositoryImpl
@@ -12,6 +13,7 @@ import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
+import com.takealook.domain.chat.report.ReportMessageUseCase
 import com.takealook.domain.chat.room.GetChatRoomsUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.chat.users.JoinChatRoomUseCase
@@ -36,6 +38,7 @@ class TklBeanConfiguration(
     private val chatMessagesRepository: ChatMessagesRepositoryImpl,
     private val chatRoomsRepository: ChatRoomsRepositoryImpl,
     private val chatReactionsRepository: ChatReactionsRepositoryImpl,
+    private val chatMessageReportsRepository: ChatMessageReportsRepositoryImpl,
 ) {
     @Bean
     fun provideSaveUserUseCase() = SaveUserUseCase(userRepository, userProfileRepository)
@@ -84,4 +87,10 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideRemoveReactionUseCase() = RemoveReactionUseCase(chatReactionsRepository)
+
+    @Bean
+    fun provideReportMessageUseCase() = ReportMessageUseCase(
+        reportsRepository = chatMessageReportsRepository,
+        messagesRepository = chatMessagesRepository,
+    )
 }
