@@ -11,6 +11,7 @@ dependencies {
     implementation(projects.feature.auth)
     implementation(projects.feature.chat)
     implementation(projects.feature.storage)
+    implementation(projects.feature.push)
 
     implementation(libs.spring.boot.starter.data.redis.reactive)
 }
