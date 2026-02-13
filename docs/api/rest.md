@@ -19,11 +19,18 @@
 
 ### `GET /chat/messages?roomId={roomId}`
 - 설명: 특정 채팅방 메시지 내역 조회
-- 쿼리:
+- 저장/보존 정책(초안, 확정 필요):
+  - 기본: **영구 저장**(신고/블라인드 근거 데이터 필요)
+  - 최소 보존: 30~90일(정책 확정 시점에 결정) + 이후는 soft-delete 또는 아카이브
+  - 신고/블라인드 연동을 위해 원본 메시지(메타데이터 포함)는 보존 기간 내 조회 가능해야 함
+- 쿼리(제안 스펙, 확정 필요):
   - `roomId` (required)
+  - `limit` (optional, default 30, max 100)
+  - `before` (optional, 메시지 cursor: messageId 또는 createdAt)
 - 응답: `UserChatMessage[]`
   - `replyToId`: 답장 대상 메시지 ID
   - `replyTo`: 답장 대상 요약(`sender`, `imageUrl`, `createdAt`) — replyToId가 있을 때 제공
+- 정렬(제안): 최신→과거(desc)
 
 ## WebSocket
 
