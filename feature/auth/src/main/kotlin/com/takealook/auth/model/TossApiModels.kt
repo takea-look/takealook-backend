@@ -25,22 +25,10 @@ data class RefreshTokenResponse(
 
 data class GetUserInfoResponse(
     val resultType: String,
-    val success: UserInfo?
+    val success: com.takealook.model.auth.UserInfo?
 )
 
-data class UserInfo(
-    val userKey: Long,
-    val scope: String?,
-    val agreedTerms: List<String>?,
-    val policy: String?,
-    val certTxId: String?,
-    val name: String?,
-    val phone: String?,
-    val birthday: String?,
-    val gender: String?,
-    val nationality: String?,
-    val email: String?
-)
+typealias UserInfo = com.takealook.model.auth.UserInfo
 
 data class LogoutResponse(
     val resultType: String
