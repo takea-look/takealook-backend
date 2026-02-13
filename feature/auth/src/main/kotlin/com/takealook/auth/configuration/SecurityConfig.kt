@@ -61,6 +61,7 @@ class SecurityConfig(
                     "/auth/toss/userinfo",
                     "/auth/toss/logout",
                     "/auth/toss/logout/user-key",
+                    "/auth/google/signin",
                     "/stickers",
                     "/sticker-categories",
                     "/swagger-ui.html",
