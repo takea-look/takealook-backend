@@ -15,5 +15,9 @@ data class StorageProps @ConstructorBinding constructor(
     val accessKey: String,
     val secretKey: String,
     val bucket: String,
-    val region: String
+    val region: String,
+    val presignTtlMinutes: Long = 10,
+    val maxUploadBytes: Long = 10L * 1024 * 1024, // 10MB
+    val allowedExtensions: List<String> = listOf("png", "jpg", "jpeg", "webp"),
+    val allowedKeyPrefix: String = "chat/",
 )

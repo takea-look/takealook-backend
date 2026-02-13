@@ -32,6 +32,19 @@
   - `replyTo`: 답장 대상 요약(`sender`, `imageUrl`, `createdAt`) — replyToId가 있을 때 제공
 - 정렬(제안): 최신→과거(desc)
 
+## Storage
+
+### `GET /storage/upload?key={key}&sizeBytes={sizeBytes?}`
+- 설명: 파일 업로드용 presigned PUT URL 발급
+- key 정책(서버에서 검증):
+  - prefix: `chat/`
+  - format: `chat/{roomId}/{timestamp}.{ext}`
+  - allowed ext: `png|jpg|jpeg|webp`
+- sizeBytes 정책(서버에서 사전 검증):
+  - `sizeBytes <= 10MB` (기본값)
+  - 주의: presigned PUT 자체로 업로드 크기 강제는 어려워 **서버 후처리/검증**이 필요
+- TTL: 10분(기본값)
+
 ## WebSocket
 
 - WebSocket 계약은 별도 문서 참고:
