@@ -5,4 +5,5 @@ import com.takealook.model.ChatMessage
 interface ChatMessagesRepository {
     suspend fun saveMessage(message: ChatMessage) : ChatMessage
     suspend fun findByRoomId(roomId: Long): List<ChatMessage>
+    suspend fun findById(id: Long): ChatMessage?
 }
