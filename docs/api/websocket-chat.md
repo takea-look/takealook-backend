@@ -1,15 +1,23 @@
-# WebSocket 채팅 연결 가이드
+# WebSocket 채팅 프로토콜
 
-## 빠른 시작
+> 이 문서는 현재 서버 구현(`feature/chat/ChatHandler.kt`) 기준의 **이벤트 타입/페이로드**를 정리합니다.
 
-### 1단계: 티켓 발급
+## 0) 전제
 
-```bash
-curl -X POST https://api.takealook.app/chat/ticket \
-  -H "accessToken: YOUR_JWT_TOKEN"
-```
+- WebSocket 연결은 **티켓 기반(일회용)** 입니다.
+- WebSocket 핸드셰이크 시 **query parameter로 `ticket`, `roomId`가 필수** 입니다.
+- 서버는 `Origin` 헤더를 `ws.allowed-origins` 설정으로 검증합니다.
 
-**응답:**
+---
+
+## 1) 티켓 발급 (HTTP)
+
+### `POST /chat/ticket`
+
+요청 헤더:
+- `accessToken: <JWT>`
+
+응답:
 ```json
 {
   "ticket": "550e8400-e29b-41d4-a716-446655440000",
@@ -17,244 +25,102 @@ curl -X POST https://api.takealook.app/chat/ticket \
 }
 ```
 
-### 2단계: WebSocket 연결
+- `expiresIn` 초 안에 연결해야 하며, 티켓은 **소비(consume)되는 일회용**입니다.
 
-```javascript
-const ticket = "550e8400-e29b-41d4-a716-446655440000";
-const ws = new WebSocket(`wss://api.takealook.app/chat?ticket=${ticket}`);
+---
 
-ws.onopen = () => {
-  console.log("Connected!");
-};
+## 2) WebSocket 연결
 
-ws.onmessage = (event) => {
-  const message = JSON.parse(event.data);
-  console.log("Received:", message);
-};
+### URL
 
-ws.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
+```text
+ws(s)://{host}/chat?ticket={ticket}&roomId={roomId}
 ```
 
-## 클라이언트별 구현 예시
-
-### JavaScript (Browser)
-
-```javascript
-class ChatClient {
-  constructor(baseUrl, accessToken) {
-    this.baseUrl = baseUrl;
-    this.accessToken = accessToken;
-    this.ws = null;
-  }
-
-  async connect() {
-    const response = await fetch(`${this.baseUrl}/chat/ticket`, {
-      method: 'POST',
-      headers: { 'accessToken': this.accessToken }
-    });
-    const { ticket } = await response.json();
-
-    const wsUrl = this.baseUrl.replace('http', 'ws');
-    this.ws = new WebSocket(`${wsUrl}/chat?ticket=${ticket}`);
-    
-    return new Promise((resolve, reject) => {
-      this.ws.onopen = () => resolve(this);
-      this.ws.onerror = reject;
-    });
-  }
-
-  send(message) {
-    this.ws.send(JSON.stringify(message));
-  }
-
-  onMessage(callback) {
-    this.ws.onmessage = (event) => {
-      callback(JSON.parse(event.data));
-    };
-  }
-
-  disconnect() {
-    this.ws?.close();
-  }
-}
-
-const chat = new ChatClient('https://api.takealook.app', accessToken);
-await chat.connect();
-chat.onMessage((msg) => console.log(msg));
-chat.send({ roomId: 1, content: "Hello!" });
+예시:
+```text
+wss://api.takealook.app/chat?ticket=550e8400-e29b-41d4-a716-446655440000&roomId=1
 ```
 
-### Kotlin (Android)
+### 연결 실패(close code)
 
-```kotlin
-class ChatClient(
-    private val baseUrl: String,
-    private val accessToken: String
-) {
-    private var webSocket: WebSocket? = null
-    private val client = OkHttpClient()
-    private val json = Json { ignoreUnknownKeys = true }
+- `1002 (POLICY_VIOLATION)`
+  - `ticket`/`roomId` 누락
+  - Origin 불일치(allowed origins 외)
+- `1003 (NOT_ACCEPTABLE)`
+  - 티켓 만료/무효
+- `1007 (BAD_DATA)`
+  - 티켓은 유효하나 사용자 프로필을 찾지 못함
 
-    suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val ticketRequest = Request.Builder()
-                .url("$baseUrl/chat/ticket")
-                .post("".toRequestBody())
-                .header("accessToken", accessToken)
-                .build()
+---
 
-            val ticketResponse = client.newCall(ticketRequest).execute()
-            val ticket = json.decodeFromString<WsTicket>(
-                ticketResponse.body?.string() ?: throw Exception("Empty response")
-            )
+## 3) 이벤트 타입
 
-            val wsUrl = baseUrl.replace("https", "wss")
-                .replace("http", "ws")
-            val wsRequest = Request.Builder()
-                .url("$wsUrl/chat?ticket=${ticket.ticket}")
-                .build()
+서버가 브로드캐스트하는 메시지는 `type: MessageType` 필드를 포함합니다.
 
-            webSocket = client.newWebSocket(wsRequest, ChatWebSocketListener())
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+`MessageType`:
+- `CHAT` : 일반 채팅 메시지
+- `JOIN` : 사용자가 방에 입장(해당 사용자 기준 **첫 세션** 생성 시)
+- `LEAVE`: 사용자가 방에서 퇴장(해당 사용자 기준 **마지막 세션** 종료 시)
 
-    fun send(message: ChatMessage) {
-        webSocket?.send(json.encodeToString(message))
-    }
+> 참고: 한 사용자가 여러 디바이스/탭에서 동시에 연결할 수 있으며, `JOIN/LEAVE`는 사용자 세션 수를 기준으로 1번만 발생합니다.
 
-    fun disconnect() {
-        webSocket?.close(1000, "User disconnected")
-    }
+---
+
+## 4) Client → Server 페이로드
+
+서버는 클라이언트가 보낸 텍스트 프레임을 아래 JSON으로 파싱합니다.
+
+### `ChatMessage`
+```json
+{
+  "id": null,
+  "roomId": 1,
+  "senderId": 123,
+  "imageUrl": "https://example.com/sticker.png",
+  "replyToId": null,
+  "createdAt": 1672531200000
 }
 ```
 
-### Swift (iOS)
+필드 설명:
+- `id`: 클라이언트에서는 보통 `null` (서버 저장 시 사용)
+- `roomId`: 대상 채팅방 ID
+- `senderId`: 발신자 사용자 ID
+- `imageUrl`: 메시지 이미지 URL (스티커 등). **현재 구현상 필수 문자열**
+- `replyToId`: 답장 대상 메시지 ID (없으면 `null`)
+- `createdAt`: epoch millis (없으면 서버/클라이언트 기본값에 의해 채워질 수 있음)
 
-```swift
-class ChatClient {
-    private let baseURL: String
-    private let accessToken: String
-    private var webSocket: URLSessionWebSocketTask?
-    
-    init(baseURL: String, accessToken: String) {
-        self.baseURL = baseURL
-        self.accessToken = accessToken
-    }
-    
-    func connect() async throws {
-        var request = URLRequest(url: URL(string: "\(baseURL)/chat/ticket")!)
-        request.httpMethod = "POST"
-        request.setValue(accessToken, forHTTPHeaderField: "accessToken")
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let ticket = try JSONDecoder().decode(WsTicket.self, from: data)
-        
-        let wsURL = baseURL
-            .replacingOccurrences(of: "https", with: "wss")
-            .replacingOccurrences(of: "http", with: "ws")
-        let url = URL(string: "\(wsURL)/chat?ticket=\(ticket.ticket)")!
-        
-        webSocket = URLSession.shared.webSocketTask(with: url)
-        webSocket?.resume()
-        
-        receiveMessages()
-    }
-    
-    private func receiveMessages() {
-        webSocket?.receive { [weak self] result in
-            switch result {
-            case .success(let message):
-                self?.receiveMessages()
-            case .failure(let error):
-                print("WebSocket error: \(error)")
-            }
-        }
-    }
-    
-    func send(_ message: ChatMessage) throws {
-        let data = try JSONEncoder().encode(message)
-        webSocket?.send(.data(data)) { error in
-            if let error = error {
-                print("Send error: \(error)")
-            }
-        }
-    }
-    
-    func disconnect() {
-        webSocket?.cancel(with: .goingAway, reason: nil)
-    }
-}
-```
+---
 
-## 메시지 형식
+## 5) Server → Client 페이로드
 
-### 보내는 메시지 (Client → Server)
+서버는 수신한 메시지를 저장한 뒤, 방 참여자들에게 아래 형태로 브로드캐스트합니다.
 
+### `UserChatMessage`
 ```json
 {
   "roomId": 1,
-  "content": "안녕하세요!",
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-### 받는 메시지 (Server → Client)
-
-```json
-{
-  "id": 123,
-  "roomId": 1,
-  "content": "안녕하세요!",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "user": {
-    "id": 1,
+  "sender": {
+    "id": 123,
     "username": "john",
-    "profileImage": "https://..."
-  }
+    "nickname": "길동이",
+    "image": "https://...",
+    "updatedAt": "2026-02-13T23:00:00"
+  },
+  "type": "CHAT",
+  "imageUrl": "https://example.com/sticker.png",
+  "replyToId": null,
+  "createdAt": 1672531200000
 }
 ```
 
-## 에러 처리
+- `type`은 `CHAT|JOIN|LEAVE` 중 하나입니다.
+- `JOIN/LEAVE` 이벤트의 경우, `imageUrl`은 `null`로 브로드캐스트됩니다.
 
-### 연결 실패 코드
+---
 
-| Close Code | 의미 | 대응 |
-|------------|------|------|
-| 1002 (POLICY_VIOLATION) | 티켓 누락 또는 Origin 거부 | 티켓 재발급 후 재연결 |
-| 1003 (NOT_ACCEPTABLE) | 티켓 만료/무효 | 티켓 재발급 후 재연결 |
-| 1011 (SERVER_ERROR) | 서버 오류 | 잠시 후 재연결 |
+## 6) 클라이언트 구현 팁
 
-### 재연결 로직 권장
-
-```javascript
-class ReconnectingChatClient extends ChatClient {
-  async connectWithRetry(maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        await this.connect();
-        return;
-      } catch (error) {
-        console.log(`Connection attempt ${i + 1} failed`);
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-      }
-    }
-    throw new Error("Failed to connect after retries");
-  }
-}
-```
-
-## FAQ
-
-### Q: 티켓이 만료되면 어떻게 하나요?
-티켓은 30초간만 유효합니다. 만료 시 `/chat/ticket`을 다시 호출하여 새 티켓을 발급받으세요.
-
-### Q: 연결이 끊어지면 자동 재연결되나요?
-서버는 자동 재연결을 지원하지 않습니다. 클라이언트에서 재연결 로직을 구현해야 합니다.
-
-### Q: 동시에 여러 기기에서 연결할 수 있나요?
-네, 동일 사용자가 여러 기기에서 동시 연결 가능합니다. 각 연결마다 별도 티켓이 필요합니다.
+- 연결이 끊기면(또는 티켓 만료로 연결 실패하면) **다시 `POST /chat/ticket`으로 티켓을 발급**받고 재연결하세요.
+- `JOIN/LEAVE`는 사용자 세션 기준으로 동작하므로, 멀티탭 환경에서 이벤트 수가 기대와 다를 수 있습니다.
