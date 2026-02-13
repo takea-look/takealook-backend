@@ -30,6 +30,7 @@ include(":feature:stickers")
 include(":feature:auth")
 include(":feature:chat")
 include(":feature:storage")
+include(":feature:push")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 

@@ -14,6 +14,7 @@
 ## Ops
 - [운영/배포 환경변수 정리](./ops/env.md)
 - [로깅/모니터링 최소 셋업(초안)](./ops/logging.md)
+- [푸시 서버(초안)](./ops/push.md)
 
 ## Auth
 - [인증 플로우 & 엔드포인트 정리(초안)](./auth/auth-flow.md)
