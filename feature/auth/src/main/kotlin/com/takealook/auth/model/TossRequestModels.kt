@@ -1,9 +1,5 @@
 package com.takealook.auth.model
 
-data class RefreshTokenRequest(
-    val refreshToken: String
-)
+typealias RefreshTokenRequest = com.takealook.model.auth.RefreshTokenRequest
 
-data class LogoutByUserKeyRequest(
-    val userKey: Long
-)
+typealias LogoutByUserKeyRequest = com.takealook.model.auth.LogoutByUserKeyRequest
