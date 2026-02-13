@@ -16,6 +16,8 @@ data class UserChatMessage(
     val replyToId: Long? = null,
     @Schema(description = "답장 대상 메시지 요약")
     val replyTo: ReplyMessageSummary? = null,
+    @Schema(description = "블라인드 여부", example = "false")
+    val isBlinded: Boolean = false,
     @Schema(description = "생성일시 (타임스탬프)", example = "1672531200000")
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -37,8 +39,9 @@ fun ChatMessage.toUserChatMessage(
     roomId = roomId,
     sender = profile,
     type = MessageType.CHAT,
-    imageUrl = imageUrl,
+    imageUrl = if (isBlinded) null else imageUrl,
     replyToId = replyToId,
     replyTo = replyTo,
+    isBlinded = isBlinded,
     createdAt = createdAt,
 )
