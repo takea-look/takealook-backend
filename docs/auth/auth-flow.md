@@ -5,6 +5,9 @@
 
 ## 1) 현재 존재하는 엔드포인트
 
+### Google login
+- `POST /auth/google/signin` (request: `{ idToken }`) → 내부 JWT 발급
+
 ### Password login
 - `POST /auth/signup`
 - `POST /auth/signin` → 내부 JWT 발급(`LoginResponse.token`)
