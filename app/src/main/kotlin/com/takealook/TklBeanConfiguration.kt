@@ -12,6 +12,7 @@ import com.takealook.data.user.profile.UserProfileRepositoryImpl
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
+import com.takealook.domain.chat.reaction.GetReactionsSummaryUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.report.ReportMessageUseCase
 import com.takealook.domain.chat.room.CreateChatRoomUseCase
@@ -99,6 +100,9 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideRemoveReactionUseCase() = RemoveReactionUseCase(chatReactionsRepository)
+
+    @Bean
+    fun provideGetReactionsSummaryUseCase() = GetReactionsSummaryUseCase(chatReactionsRepository)
 
     @Bean
     fun provideReportMessageUseCase() = ReportMessageUseCase(
