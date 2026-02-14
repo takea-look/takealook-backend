@@ -59,9 +59,11 @@ class ChatRestController(
     @Operation(summary = "채팅 메시지 조회", description = "특정 채팅방의 메시지 내역을 조회합니다.")
     @GetMapping("/messages")
     suspend fun getMessages(
-        @RequestParam(required = true) roomId: Long
+        @RequestParam(required = true) roomId: Long,
+        @RequestParam(required = false, defaultValue = "30") limit: Int,
+        @RequestParam(required = false) before: Long?,
     ): ResponseEntity<List<UserChatMessage>> {
-        val messages = getChatMessagesUseCase(roomId)
+        val messages = getChatMessagesUseCase(roomId, limit, before)
         return ResponseEntity.ok(messages)
     }
 }
