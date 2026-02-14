@@ -62,8 +62,9 @@ class ChatRestController(
         @RequestParam(required = true) roomId: Long,
         @RequestParam(required = false, defaultValue = "30") limit: Int,
         @RequestParam(required = false) before: Long?,
+        @RequestParam(required = false) beforeMessageId: Long?,
     ): ResponseEntity<List<UserChatMessage>> {
-        val messages = getChatMessagesUseCase(roomId, limit, before)
+        val messages = getChatMessagesUseCase(roomId, limit, before, beforeMessageId)
         return ResponseEntity.ok(messages)
     }
 }

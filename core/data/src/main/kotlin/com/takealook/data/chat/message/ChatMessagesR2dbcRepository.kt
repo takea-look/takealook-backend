@@ -10,7 +10,7 @@ interface ChatMessagesR2dbcRepository : CoroutineCrudRepository<ChatMessagesEnti
         SELECT *
         FROM chat_messages
         WHERE room_id = :roomId
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
     suspend fun findRecentByRoomId(roomId: Long, limit: Int): List<ChatMessagesEntity>
@@ -20,10 +20,25 @@ interface ChatMessagesR2dbcRepository : CoroutineCrudRepository<ChatMessagesEnti
         FROM chat_messages
         WHERE room_id = :roomId
           AND created_at < :before
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
     suspend fun findRecentByRoomIdBefore(roomId: Long, before: Long, limit: Int): List<ChatMessagesEntity>
+
+    @Query("""
+        SELECT *
+        FROM chat_messages
+        WHERE room_id = :roomId
+          AND (created_at < :beforeCreatedAt OR (created_at = :beforeCreatedAt AND id < :beforeMessageId))
+        ORDER BY created_at DESC, id DESC
+        LIMIT :limit
+    """)
+    suspend fun findRecentByRoomIdBeforeMessage(
+        roomId: Long,
+        beforeCreatedAt: Long,
+        beforeMessageId: Long,
+        limit: Int,
+    ): List<ChatMessagesEntity>
 
     @Query("""
         UPDATE chat_messages
