@@ -4,6 +4,10 @@
 
 ## 필수(로컬 개발 최소)
 
+### Auth header
+- 표준: `Authorization: Bearer <JWT>`
+- 레거시(호환): `accessToken: <JWT>`
+
 ### DB (PostgreSQL / R2DBC)
 - `DB_URL` (default: `r2dbc:pool:postgresql://localhost/takealook`)
 - `DB_USERNAME` (default: `tkladmin`)

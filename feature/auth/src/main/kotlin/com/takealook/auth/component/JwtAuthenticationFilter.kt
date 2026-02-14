@@ -10,7 +10,8 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
-const val HEADER_STRING = "accessToken"
+const val LEGACY_HEADER_STRING = "accessToken"
+const val AUTHORIZATION_HEADER = "Authorization"
 
 @Component
 class JwtAuthenticationFilter(
@@ -34,13 +35,20 @@ class JwtAuthenticationFilter(
     }
 
     private fun getAccessTokenFromRequestHeader(request: ServerHttpRequest): String? {
-        val bearerToken = request
-            .headers[HEADER_STRING]
-            ?.firstOrNull()
+        // Standard: Authorization: Bearer <token>
+        val authHeader = request.headers[AUTHORIZATION_HEADER]?.firstOrNull()
+        val bearer = authHeader?.takeIf { StringUtils.hasText(it) }?.trim()
 
-        if (StringUtils.hasText(bearerToken)) {
-            return bearerToken
+        if (bearer != null && bearer.startsWith("Bearer ", ignoreCase = true)) {
+            return bearer.substringAfter("Bearer ").trim().takeIf { it.isNotBlank() }
         }
+
+        // Legacy support: accessToken: <token>
+        val legacy = request.headers[LEGACY_HEADER_STRING]?.firstOrNull()
+        if (StringUtils.hasText(legacy)) {
+            return legacy
+        }
+
         return null
     }
 }
