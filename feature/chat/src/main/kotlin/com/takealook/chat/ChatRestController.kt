@@ -1,6 +1,8 @@
 package com.takealook.chat
 
 import com.takealook.domain.chat.message.GetMessagesUseCase
+import com.takealook.domain.chat.room.CreateChatRoomUseCase
+import com.takealook.domain.chat.room.GetChatRoomUseCase
 import com.takealook.domain.chat.room.GetChatRoomsUseCase
 import com.takealook.model.ChatRoom
 import com.takealook.model.UserChatMessage
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/chat")
 class ChatRestController(
     private val getChatRoomsUseCase: GetChatRoomsUseCase,
+    private val getChatRoomUseCase: GetChatRoomUseCase,
+    private val createChatRoomUseCase: CreateChatRoomUseCase,
     private val getChatMessagesUseCase: GetMessagesUseCase,
 ) {
 
@@ -25,6 +29,31 @@ class ChatRestController(
     suspend fun getRooms(): ResponseEntity<List<ChatRoom>> {
         val rooms = getChatRoomsUseCase()
         return ResponseEntity.ok(rooms.toList())
+    }
+
+    data class CreateRoomRequest(
+        val name: String,
+        val isPublic: Boolean = true,
+        val maxParticipants: Int = 0,
+    )
+
+    @Operation(summary = "채팅방 생성", description = "채팅방을 생성하고 id를 반환합니다.")
+    @org.springframework.web.bind.annotation.PostMapping("/rooms")
+    suspend fun createRoom(
+        @org.springframework.web.bind.annotation.RequestBody body: CreateRoomRequest,
+    ): ResponseEntity<ChatRoom> {
+        val created = createChatRoomUseCase(body.name, body.isPublic, body.maxParticipants)
+        return ResponseEntity.ok(created)
+    }
+
+    @Operation(summary = "채팅방 상세 조회", description = "채팅방 id로 상세를 조회합니다.")
+    @GetMapping("/rooms/{id}")
+    suspend fun getRoom(
+        @org.springframework.web.bind.annotation.PathVariable id: Long,
+    ): ResponseEntity<ChatRoom> {
+        val room = getChatRoomUseCase(id)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(room)
     }
 
     @Operation(summary = "채팅 메시지 조회", description = "특정 채팅방의 메시지 내역을 조회합니다.")
