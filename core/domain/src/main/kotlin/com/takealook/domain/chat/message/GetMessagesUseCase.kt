@@ -10,8 +10,8 @@ class GetMessagesUseCase(
     private val chatMessagesRepository: ChatMessagesRepository,
     private val userProfileRepository: UserProfileRepository
 ) {
-    suspend operator fun invoke(roomId: Long) = chatMessagesRepository
-        .findByRoomId(roomId)
+    suspend operator fun invoke(roomId: Long, limit: Int = 30, before: Long? = null) = chatMessagesRepository
+        .findByRoomId(roomId, limit, before)
         .map { message ->
             val user = userProfileRepository.findByUserId(message.senderId)
             if (user == null) throw ProfileNotFoundException("user id(${message.senderId}) 를 찾을 수 없습니다.")
