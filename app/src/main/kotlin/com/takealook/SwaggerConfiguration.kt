@@ -1,6 +1,5 @@
 package com.takealook
 
-import com.takealook.auth.component.HEADER_STRING
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
@@ -15,15 +14,27 @@ class SwaggerConfiguration {
 
     @Bean
     fun openAPI(): OpenAPI {
-        val securitySchemeName = HEADER_STRING
-        val securityRequirement = SecurityRequirement().addList(securitySchemeName)
-        val components = Components().addSecuritySchemes(
-            securitySchemeName,
-            SecurityScheme()
-                .name(securitySchemeName)
-                .type(SecurityScheme.Type.APIKEY)
-                .`in`(SecurityScheme.In.HEADER)
-        )
+        val bearerSchemeName = "bearerAuth"
+        val legacySchemeName = "accessToken" // legacy header (backward compatible)
+
+        val securityRequirement = SecurityRequirement().addList(bearerSchemeName)
+
+        val components = Components()
+            .addSecuritySchemes(
+                bearerSchemeName,
+                SecurityScheme()
+                    .name("Authorization")
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme("bearer")
+                    .bearerFormat("JWT")
+            )
+            .addSecuritySchemes(
+                legacySchemeName,
+                SecurityScheme()
+                    .name(legacySchemeName)
+                    .type(SecurityScheme.Type.APIKEY)
+                    .`in`(SecurityScheme.In.HEADER)
+            )
 
         return OpenAPI()
             .info(
@@ -31,19 +42,24 @@ class SwaggerConfiguration {
                     .title("Takealook API")
                     .description("""
                         Takealook Backend API Documentation
-                        
+
+                        ## Auth
+
+                        - 표준: `Authorization: Bearer <JWT>`
+                        - 레거시(호환): `accessToken: <JWT>`
+
                         ## WebSocket 채팅 연결 가이드
-                        
+
                         브라우저/모바일에서 WebSocket 채팅에 연결하려면:
-                        
-                        1. **티켓 발급**: `POST /chat/ticket` 호출 (accessToken 헤더 필요)
+
+                        1. **티켓 발급**: `POST /chat/ticket` 호출 (Authorization Bearer 필요)
                         2. **WebSocket 연결**: `ws(s)://server/chat?ticket={발급받은_티켓}`
-                        
+
                         ```
                         [클라이언트]                    [서버]
                             │                             │
                             │ POST /chat/ticket           │
-                            │ Header: accessToken         │
+                            │ Authorization: Bearer ...   │
                             ├────────────────────────────→│
                             │                             │
                             │ { "ticket": "abc...",       │
@@ -55,7 +71,7 @@ class SwaggerConfiguration {
                             │        Connected            │
                             │←────────────────────────────┤
                         ```
-                        
+
                         > 티켓은 30초간 유효하며, 일회용입니다.
                     """.trimIndent())
                     .version("1.0.0")
