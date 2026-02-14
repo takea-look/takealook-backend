@@ -8,3 +8,7 @@
   - 구현: chat_message_reactions 테이블 + WS REACTION 커맨드(add/remove) + 브로드캐스트(UserChatReaction)
   - 머지 PR: #85
 
+- #102 신고 API + 10회 이상 신고 시 블라인드 처리
+  - 구현: chat_message_reports 테이블(uniq: message_id, reporter_user_id) + 누적 10회 이상 시 is_blinded=true + /chat/messages 응답에 isBlinded 포함(블라인드면 imageUrl null) + POST /chat/messages/report
+  - 머지 PR: #87
+
