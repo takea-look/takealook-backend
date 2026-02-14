@@ -21,3 +21,7 @@
   - 결론: **5분 캐시 전략은 미채택** (신고/블라인드 근거 데이터 필요로 인해 영구/기간 보존 방향으로 정책 변경)
   - 스펙/정책 문서: docs/api/rest.md (messages 보존/페이징), 관련 이슈 #71
 
+- #96 인증/인가: JWT Guard(Middleware) + 사용자 컨텍스트 주입
+  - 구현: JwtAuthenticationFilter(WebFilter)에서 `accessToken` 헤더 기반 JWT 검증 후 ReactiveSecurityContextHolder에 인증 컨텍스트 주입 + SecurityConfig에서 보호 엔드포인트 401 처리
+  - 머지 PR: (기존 기능 누적)
+
