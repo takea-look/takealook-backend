@@ -4,6 +4,7 @@ import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.ProfileNotFoundException
 import com.takealook.domain.user.profile.GetMyProfileUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
+import com.takealook.domain.user.profile.UpdateMyProfileUseCase
 import com.takealook.model.UserProfile
 import io.jsonwebtoken.Claims
 import io.swagger.v3.oas.annotations.Operation
@@ -13,6 +14,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -23,7 +26,29 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val getMyProfileUseCase: GetMyProfileUseCase,
+    private val updateMyProfileUseCase: UpdateMyProfileUseCase,
 ) {
+
+    data class UpdateMyProfileRequest(
+        val nickname: String? = null,
+        val imageUrl: String? = null,
+    )
+
+    @Operation(
+        summary = "내 프로필 수정",
+        description = "닉네임은 최초 1회만 설정 가능하며(이미 값이 있으면 변경 불가), imageUrl은 언제든 갱신 가능합니다."
+    )
+    @PatchMapping("/profile/me")
+    suspend fun updateMyProfile(
+        @AuthenticationPrincipal principal: Claims?,
+        @RequestBody body: UpdateMyProfileRequest,
+    ): ResponseEntity<UserProfile> {
+        val username = principal?.subject?.takeIf { it.isNotBlank() }
+            ?: throw InvalidCredentialsException("Invalid token")
+
+        val profile = updateMyProfileUseCase(username, body.nickname, body.imageUrl)
+        return ResponseEntity.ok(profile)
+    }
 
     @Operation(
         summary = "내 프로필 조회",

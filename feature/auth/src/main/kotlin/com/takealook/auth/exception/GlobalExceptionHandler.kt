@@ -3,6 +3,7 @@ package com.takealook.auth.exception
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.InvalidReplyToMessageException
 import com.takealook.domain.exceptions.ProfileNotFoundException
+import com.takealook.domain.exceptions.ProfileUpdateNotAllowedException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.domain.exceptions.UserNotFoundException
 import org.slf4j.LoggerFactory
@@ -48,6 +49,18 @@ class GlobalExceptionHandler {
             status = status.value(),
             reason = "PROFILE_NOT_FOUND",
             message = "Profile not found"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(ProfileUpdateNotAllowedException::class)
+    fun handleProfileUpdateNotAllowedException(ex: ProfileUpdateNotAllowedException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+        log.warn("ProfileUpdateNotAllowedException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "PROFILE_UPDATE_NOT_ALLOWED",
+            message = ex.message ?: "Profile update not allowed"
         )
         return ResponseEntity.status(status).body(errorResponse)
     }
