@@ -16,4 +16,12 @@ class ChatRoomsRepositoryImpl(
             .map { it.toExternal() }
             .toList()
     }
+
+    override suspend fun create(room: ChatRoom): ChatRoom {
+        return repository.save(room.fromExternal()).toExternal()
+    }
+
+    override suspend fun findById(id: Long): ChatRoom? {
+        return repository.findById(id)?.toExternal()
+    }
 }

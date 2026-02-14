@@ -14,6 +14,8 @@ import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.report.ReportMessageUseCase
+import com.takealook.domain.chat.room.CreateChatRoomUseCase
+import com.takealook.domain.chat.room.GetChatRoomUseCase
 import com.takealook.domain.chat.room.GetChatRoomsUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.chat.users.JoinChatRoomUseCase
@@ -81,6 +83,12 @@ class TklBeanConfiguration(
 
     @Bean
     fun provideGetChatRoomsUseCase() = GetChatRoomsUseCase(chatRoomsRepository)
+
+    @Bean
+    fun provideCreateChatRoomUseCase() = CreateChatRoomUseCase(chatRoomsRepository)
+
+    @Bean
+    fun provideGetChatRoomUseCase() = GetChatRoomUseCase(chatRoomsRepository)
 
     @Bean
     fun provideAddReactionUseCase() = AddReactionUseCase(chatReactionsRepository)
