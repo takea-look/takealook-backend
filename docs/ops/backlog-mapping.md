@@ -12,3 +12,8 @@
   - 구현: chat_message_reports 테이블(uniq: message_id, reporter_user_id) + 누적 10회 이상 시 is_blinded=true + /chat/messages 응답에 isBlinded 포함(블라인드면 imageUrl null) + POST /chat/messages/report
   - 머지 PR: #87
 
+- #99 WebSocket 채팅: 연결/인증/룸 조인/이미지 메시지 브로드캐스트
+  - 구현: /chat/ticket + WsTicketService(REDIS, TTL, getAndDelete consume) + ChatHandler(WebSocket /chat, ticket+roomId, join/leave broadcast, CHAT payload broadcast)
+  - 문서: docs/api/websocket-chat.md, docs/architecture/websocket-authentication.md
+  - 머지 PR: (기존 기능 누적; 최근 문서 보강 #88)
+
