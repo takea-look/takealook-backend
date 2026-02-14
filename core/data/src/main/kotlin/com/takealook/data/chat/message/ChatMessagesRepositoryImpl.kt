@@ -8,13 +8,32 @@ import org.springframework.stereotype.Repository
 class ChatMessagesRepositoryImpl(
     private val repository: ChatMessagesR2dbcRepository
 ): ChatMessagesRepository {
-    override suspend fun findByRoomId(roomId: Long, limit: Int, before: Long?): List<ChatMessage> {
+    override suspend fun findByRoomId(
+        roomId: Long,
+        limit: Int,
+        before: Long?,
+        beforeMessageId: Long?,
+    ): List<ChatMessage> {
         val safeLimit = limit.coerceIn(1, 100)
 
-        val items = if (before != null) {
-            repository.findRecentByRoomIdBefore(roomId, before, safeLimit)
-        } else {
-            repository.findRecentByRoomId(roomId, safeLimit)
+        val items = when {
+            beforeMessageId != null -> {
+                val cursor = repository.findById(beforeMessageId)
+                    ?: return emptyList()
+
+                if (cursor.roomId != roomId) return emptyList()
+
+                repository.findRecentByRoomIdBeforeMessage(
+                    roomId = roomId,
+                    beforeCreatedAt = cursor.createdAt,
+                    beforeMessageId = beforeMessageId,
+                    limit = safeLimit,
+                )
+            }
+
+            before != null -> repository.findRecentByRoomIdBefore(roomId, before, safeLimit)
+
+            else -> repository.findRecentByRoomId(roomId, safeLimit)
         }
 
         return items.map { it.toExternal() }
