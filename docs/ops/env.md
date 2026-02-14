@@ -4,6 +4,9 @@
 
 ## 필수(로컬 개발 최소)
 
+### Java / Gradle toolchain
+- 이 프로젝트는 **JDK 21**이 필요합니다: [로컬 개발: JDK 21 세팅 가이드](./jdk21.md)
+
 ### Auth header
 - 표준: `Authorization: Bearer <JWT>`
 - 레거시(호환): `accessToken: <JWT>`
