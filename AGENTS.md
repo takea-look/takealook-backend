@@ -1,88 +1,81 @@
-# PROJECT KNOWLEDGE BASE
+# AGENTS.md (Codex / AI Agent Guide)
 
-**Generated:** 2026-01-09
-**Commit:** (not available)
-**Branch:** (not available)
+이 파일은 takealook-backend에서 Codex/에이전트가 **빠르게 온보딩**하고,
+**일관된 Git 협업(브랜치→PR→CI→머지)** 으로 작업하도록 돕는 프로젝트 가이드입니다.
 
-## OVERVIEW
-Kotlin Spring Boot modular monolith with WebFlux reactive stack. Chat application with authentication, stickers, and R2 storage.
+## TL;DR
+- 작업은 항상 **브랜치에서** 하고, **PR 생성 후 CI 통과 확인**하고 머지한다.
+- 병렬 작업/PR 다중 처리 시 **git worktree**를 기본으로 사용한다.
 
-## STRUCTURE
+## Project Overview
+- Kotlin + Spring Boot **WebFlux(reactive)** 기반 모듈러 모놀리스
+- 주요 기능: 인증(JWT), 채팅(WebSocket), 스티커, 스토리지(Cloudflare R2)
+
+## Repo Structure (high level)
 ```
-takealook-backend/
-├── app/                    # Main entry point, global configuration
-├── core/                   # Shared layers
-│   ├── model/              # Data models (flat package structure)
-│   ├── domain/             # Business logic, use cases
-│   └── data/              # R2DBC repositories, mappers
-├── feature/                # Vertical features
-│   ├── auth/               # JWT authentication
-│   ├── chat/               # WebSocket chat, rooms
-│   ├── stickers/           # Sticker management
-│   └── storage/           # Cloudflare R2 integration
-├── build-logic/            # Custom Gradle convention plugins
-├── taskmaster/             # AI agent workflow rules
-└── gradle/                 # Build configuration
+app/                 # 엔트리포인트 + 공통 설정
+core/                # shared layers (model/domain/data)
+feature/             # vertical features (auth/chat/stickers/storage)
+build-logic/         # Gradle convention plugins
+ taskmaster/         # AI workflow rules (Cursor/Windsurf)
 ```
 
-## WHERE TO LOOK
-| Task | Location | Notes |
-|------|----------|-------|
-| App startup | `app/src/main/kotlin/com/takealook/TakealookBackendApplication.kt` | Excludes SecurityAutoConfiguration |
-| Bean config | `app/src/main/kotlin/com/takealook/TklBeanConfiguration.kt` | Central wiring |
-| Swagger config | `app/src/main/kotlin/com/takealook/SwaggerConfiguration.kt` | OpenAPI docs |
-| Database schema | `app/src/main/resources/schema.sql` | Execute manually before first run |
-| Convention plugins | `build-logic/convention/src/main/kotlin/` | Module-specific build logic |
-| AI rules | `taskmaster/.cursor/rules/` | Cursor/Windsurf agent workflows |
-| Dependency versions | `gradle/libs.versions.toml` | Centralized version catalog |
+## Where to look (common tasks)
+- App bootstrap: `app/src/main/kotlin/.../TakealookBackendApplication.kt`
+- Bean wiring: `app/src/main/kotlin/.../TklBeanConfiguration.kt`
+- Swagger/OpenAPI: `app/src/main/kotlin/.../SwaggerConfiguration.kt`
+- DB schema: `app/src/main/resources/schema.sql`
+- Auth (JWT/WebFlux security): `feature/auth/src/main/kotlin/com/takealook/auth/`
+- Chat(WebSocket): `feature/chat/`
+- R2: `feature/storage/`
 
-## CONVENTIONS
-- **Module organization**: Each module applies convention plugin from `build-logic/`
-- **Package structure**: Standard `com.takealook.<module>`, EXCEPT `core:model` uses flat package `com.takealook.model` (single directory)
-- **Reactive stack**: WebFlux + R2DBC (non-blocking I/O)
-- **Testing**: JUnit 5 configured via convention plugins, but NO test files exist yet
-- **Build**: `./gradlew :app:bootrun` (local) or Docker deployment (production)
-
-## ANTI-PATTERNS (THIS PROJECT)
-- **NEVER** manually edit `.taskmasterconfig` - use `task-master models` CLI
-- **NEVER** assume tool operations succeeded without verification
-- **DO NOT** skip DDL initialization - `schema.sql` must be executed manually
-- **DO NOT** use environment variables for non-sensitive config - use `.taskmasterconfig`
-- **DO NOT** commit secrets - all sensitive data in GitHub Secrets or `.env`
-
-## UNIQUE STYLES
-- **Build-logic pattern**: Custom Gradle convention plugins enforce consistency across modules
-- **Taskmaster integration**: AI agent rules co-located with backend code in `taskmaster/`
-- **Flat package in core:model**: Uses `com.takealook.model` single directory (deviation from standard nested structure)
-- **bin/ directories**: Present in source tree (likely build artifacts, should be gitignored)
-- **Security exclusion**: `SecurityAutoConfiguration` excluded from main application (custom security setup)
-
-## COMMANDS
+## Local Dev Commands
 ```bash
-# Local development
-./gradlew :app:bootrun
+# run
+./gradlew :app:bootRun
 
-# Docker deployment
-docker pull tklcat/takealook-backend:latest
-docker run --name app -p 8080:8080 \
-  -e DB_USERNAME=... \
-  -e DB_PASSWORD=... \
-  -e DB_URL=... \
-  -e JWT_SECURE=... \
-  -e R2_ACCOUNT_ID=... \
-  -e R2_ACCESS_KEY=... \
-  -e R2_SECRET_KEY=... \
-  -e R2_BUCKET_NAME=... \
-  tklcat/takealook-backend:latest
+# build
+./gradlew build
 
-# Database setup
-# 1. Create PostgreSQL user and database
-# 2. Execute app/src/main/resources/schema.sql
+# (optional) 특정 모듈만
+./gradlew :feature:auth:test
 ```
 
-## NOTES
-- **Schema order bug**: `chat_messages` references `chat_rooms` before it's defined (FK constraint order)
-- **R2DBC integration**: No ORM (no JPA/Hibernate) - manual SQL required
-- **Deployment**: Triggers on version tags (`*.*.*`), builds `linux/arm64` image
-- **Git submodules**: Uses `takealook-taskmanager` submodule (see README for init)
-- **Testing gaps**: MockK mentioned in PRD but not added to dependencies yet; uses default Mockito
+## Database
+- `schema.sql`을 초기화에 사용한다(로컬/테스트 환경).
+- 스키마/마이그레이션 변경은 PR에서 **DDL 순서/참조 무결성**까지 함께 검증한다.
+
+## Git / Collaboration Rules (must)
+1) **Branch → Commit → PR → CI green → Merge**
+2) PR은 가능한 작게(단일 의도) 유지
+3) CI 실패 시: 원인 1줄 요약 + 최소 수정으로 green 복구
+
+### git worktree (권장)
+병렬 작업/충돌 회피를 위해 worktree를 기본으로 사용:
+```bash
+# 새 작업용 worktree
+mkdir -p /tmp/takealook
+cd <repo>
+git fetch origin
+
+git worktree add -b fix/<topic> /tmp/takealook/fix-<topic> origin/main
+cd /tmp/takealook/fix-<topic>
+
+# 작업 후
+git push -u origin fix/<topic>
+# PR 생성 후 머지되면
+cd <repo>
+git worktree remove /tmp/takealook/fix-<topic>
+```
+
+## Codex CLI Usage (suggested)
+- 구현 작업: `codex exec --full-auto "..."` (repo 내부에서)
+- 프롬프트에 항상 포함:
+  - 목표/수용 기준(AC)
+  - 금지사항(불필요한 리팩토링/무관 변경 금지)
+  - 검증 커맨드
+  - Git flow(브랜치→PR→CI→머지)
+
+## Notes / Pitfalls
+- WebFlux이므로 blocking 호출을 섞지 말 것(특히 security/filter에서).
+- 시크릿/토큰은 절대 커밋 금지(GitHub Secrets/환경변수로).
