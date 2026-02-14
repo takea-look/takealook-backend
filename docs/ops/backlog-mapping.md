@@ -25,3 +25,8 @@
   - 구현: JwtAuthenticationFilter(WebFilter)에서 `accessToken` 헤더 기반 JWT 검증 후 ReactiveSecurityContextHolder에 인증 컨텍스트 주입 + SecurityConfig에서 보호 엔드포인트 401 처리
   - 머지 PR: (기존 기능 누적)
 
+- #98 이미지 업로드: Firebase Storage 연동 + 업로드/다운로드 플로우 정의
+  - 결론: **Firebase 대신 Cloudflare R2 presigned upload 전략 채택**
+  - 구현: GET /storage/upload (key/ext/size/TTL 정책 검증) + img domain/cache policy 문서화
+  - 머지 PR: #83(업로드 정책 검증), #84(img domain/cache policy)
+
