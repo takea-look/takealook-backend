@@ -17,3 +17,7 @@
   - 문서: docs/api/websocket-chat.md, docs/architecture/websocket-authentication.md
   - 머지 PR: (기존 기능 누적; 최근 문서 보강 #88)
 
+- #101 메시지 저장 전략: 5분 캐시(임시 저장) + 조회 API
+  - 결론: **5분 캐시 전략은 미채택** (신고/블라인드 근거 데이터 필요로 인해 영구/기간 보존 방향으로 정책 변경)
+  - 스펙/정책 문서: docs/api/rest.md (messages 보존/페이징), 관련 이슈 #71
+
