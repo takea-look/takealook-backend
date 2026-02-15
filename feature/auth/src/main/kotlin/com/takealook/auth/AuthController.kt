@@ -1,79 +1,57 @@
 package com.takealook.auth
 
+import com.takealook.auth.exception.AuthFlowDeprecatedException
+import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
 import com.takealook.model.auth.GoogleLoginRequest
-import com.takealook.model.auth.LoginRequest
 import com.takealook.model.auth.LoginResponse
-import com.takealook.model.auth.LogoutByUserKeyRequest
 import com.takealook.model.auth.RefreshTokenRequest
-import com.takealook.model.auth.TossLoginRequest
-import com.takealook.model.auth.UserInfo
 import com.takealook.domain.exceptions.InvalidCredentialsException
-import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.model.User
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import com.takealook.auth.component.TossAuthService
-import com.fasterxml.jackson.databind.ObjectMapper
-import java.util.UUID
 
-@Tag(name = "Authentication", description = "인증 관리 API")
+@Tag(name = "Authentication", description = "SNS 인증 관리 API")
 @RestController
 @RequestMapping("/auth")
 class AuthController(
     private val getUserByNameUseCase: GetUserByNameUseCase,
     private val saveUserUseCase: SaveUserUseCase,
-    private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val tossAuthService: TossAuthService,
     private val googleAuthService: GoogleAuthService,
 ) {
 
     @Operation(
-        summary = "로그인",
-        description = "사용자 이름과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.",
-        security = []
+        summary = "구버전 로그인(비권장)",
+        description = "과거 호환용 username/password 로그인은 비활성화되었습니다.",
+        deprecated = true,
     )
     @PostMapping("/signin")
-    suspend fun login(@RequestBody loginRequest: LoginRequest): LoginResponse {
-        val user = getUserByNameUseCase(loginRequest.username)
-            ?: throw InvalidCredentialsException("Invalid username or password")
-
-        if (!passwordEncoder.matches(loginRequest.password, user.password)) {
-            throw InvalidCredentialsException("Invalid username or password")
-        }
-
-        val token = jwtTokenProvider.createToken(user.username)
-        return LoginResponse(token)
+    suspend fun deprecatedSignIn(@RequestBody body: Map<String, String>): Nothing {
+        throw AuthFlowDeprecatedException(
+            "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
+        )
     }
 
     @Operation(
-        summary = "회원가입",
-        description = "새로운 사용자를 등록합니다.",
-        security = []
+        summary = "구버전 회원가입(비권장)",
+        description = "과거 호환용 username/password 회원가입은 비활성화되었습니다.",
+        deprecated = true,
     )
     @PostMapping("/signup")
-    suspend fun signUp(@RequestBody signupRequest: LoginRequest): Unit {
-        if (getUserByNameUseCase(signupRequest.username) != null) {
-            throw UserAlreadyExistsException("Username '${signupRequest.username}' is already taken.")
-        }
-
-        val user = User(
-            username = signupRequest.username,
-            password = passwordEncoder.encode(signupRequest.password)
-        )
-
-        saveUserUseCase(user)
+    suspend fun deprecatedSignUp(@RequestBody body: Map<String, String>): Nothing {
+        throw AuthFlowDeprecatedException(
+            "username/password signup is deprecated. Use SNS onboarding flow managed by provider.")
     }
 
     @Operation(
@@ -86,110 +64,67 @@ class AuthController(
         val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
         val sub = tokenInfo.sub ?: throw RuntimeException("Invalid google token")
 
-        val internalUsername = "google_${sub}"
-
-        var user = getUserByNameUseCase(internalUsername)
+        var user = getUserByNameUseCase("google_$sub")
         if (user == null) {
-            val randomPassword = UUID.randomUUID().toString()
+            val randomPassword = java.util.UUID.randomUUID().toString()
             user = User(
-                username = internalUsername,
-                password = passwordEncoder.encode(randomPassword),
+                username = "google_$sub",
+                password = randomPassword,
             )
             saveUserUseCase(user)
         }
 
-        val internalToken = jwtTokenProvider.createToken(internalUsername)
-        return LoginResponse(internalToken)
+        val accessToken = jwtTokenProvider.createToken(user.username)
+        val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
+        return LoginResponse(accessToken, refreshToken)
     }
 
     @Operation(
-        summary = "토스 로그인",
-        description = "토스 앱에서 받은 인가 코드로 로그인합니다.",
+        summary = "Apple 로그인",
+        description = "Apple OAuth 로그인. (현재 MVP: 미지원 - 내부 활성화 요청 필요)",
         security = []
     )
-    @PostMapping("/toss/signin")
-    suspend fun loginWithToss(@RequestBody request: TossLoginRequest): LoginResponse {
-        val (tossAccessToken, tossRefreshToken) = tossAuthService.exchangeToken(
-            request.authorizationCode,
-            request.referrer
+    @PostMapping("/apple/signin")
+    suspend fun loginWithApple(@RequestBody request: Map<String, String>): LoginResponse {
+        throw UnsupportedSocialProviderException(
+            "Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
         )
-
-        val tossUserInfo = tossAuthService.getUserInfo(tossAccessToken)
-
-        val internalUsername = "toss_${tossUserInfo.userKey}"
-
-        var user = getUserByNameUseCase(internalUsername)
-        if (user == null) {
-            // Toss 사용자는 랜덤 비밀번호 사용 (패스워드 로그인 방지)
-            val randomPassword = UUID.randomUUID().toString()
-            
-            user = User(
-                username = internalUsername,
-                password = passwordEncoder.encode(randomPassword),
-                tossUserKey = tossUserInfo.userKey,
-                tossName = tossUserInfo.name,
-                tossPhone = tossUserInfo.phone,
-                tossEmail = tossUserInfo.email
-            )
-            saveUserUseCase(user)
-        } else {
-            // 정보 업데이트
-            user = user.copy(
-                tossName = tossUserInfo.name,
-                tossPhone = tossUserInfo.phone,
-                tossEmail = tossUserInfo.email
-            )
-            saveUserUseCase(user)
-        }
-
-        val internalToken = jwtTokenProvider.createToken(user.username)
-        return LoginResponse(internalToken, tossRefreshToken)
     }
 
     @Operation(
-        summary = "토스 로그인 - 토큰 재발급",
-        description = "Refresh token으로 access token을 재발급합니다.",
+        summary = "Kakao 로그인",
+        description = "Kakao OAuth 로그인. (현재 MVP: 미지원 - 내부 활성화 요청 필요)",
         security = []
     )
-    @PostMapping("/toss/refresh")
-    suspend fun refreshTossToken(
-        @RequestBody request: RefreshTokenRequest
-    ): LoginResponse {
-        val newAccessToken = tossAuthService.refreshAccessToken(request.refreshToken)
+    @PostMapping("/kakao/signin")
+    suspend fun loginWithKakao(@RequestBody request: Map<String, String>): LoginResponse {
+        throw UnsupportedSocialProviderException(
+            "Kakao provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
+        )
+    }
+
+    @Operation(
+        summary = "토큰 재발급",
+        description = "Internal refresh token을 이용해 access token을 재발급합니다.",
+        security = []
+    )
+    @PostMapping("/refresh")
+    suspend fun refresh(@RequestBody request: RefreshTokenRequest): LoginResponse {
+        val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
         return LoginResponse(newAccessToken)
     }
 
     @Operation(
-        summary = "토스 사용자 정보 조회",
-        description = "Toss access token으로 사용자 정보를 조회합니다."
+        summary = "사용자 세션 확인",
+        description = "임시 디버그용 API로 JWT를 파싱한 username 정보를 반환합니다."
     )
-    @GetMapping("/toss/userinfo")
-    suspend fun getTossUserInfo(
-        @RequestHeader("accessToken") accessToken: String
-    ): UserInfo {
-        return tossAuthService.getUserInfo(accessToken)
-    }
-
-    @Operation(
-        summary = "토스 로그아웃 (Access Token)",
-        description = "Access token으로 로그아웃합니다."
-    )
-    @PostMapping("/toss/logout")
-    suspend fun logoutByAccessToken(
-        @RequestHeader("accessToken") accessToken: String
-    ) {
-        tossAuthService.logoutByAccessToken(accessToken)
-    }
-
-    @Operation(
-        summary = "토스 로그아웃 (User Key)",
-        description = "User key로 로그아웃합니다.",
-        security = []
-    )
-    @PostMapping("/toss/logout/user-key")
-    suspend fun logoutByUserKey(
-        @RequestBody request: LogoutByUserKeyRequest
-    ) {
-        tossAuthService.logoutByUserKey(request.userKey)
+    @GetMapping("/me")
+    suspend fun getSession(@RequestHeader("Authorization") token: String): ResponseEntity<Map<String, String>> {
+        val accessToken = token.removePrefix("Bearer ").trim()
+        if (!jwtTokenProvider.isTokenValid(accessToken)) {
+            throw InvalidCredentialsException("Invalid token")
+        }
+        val claims = jwtTokenProvider.parseClaims(accessToken)
+        return ResponseEntity.ok(mapOf("username" to claims.subject))
     }
 }

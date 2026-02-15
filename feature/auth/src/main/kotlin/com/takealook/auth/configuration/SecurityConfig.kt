@@ -2,7 +2,6 @@ package com.takealook.auth.configuration
 
 import com.takealook.auth.component.JwtAuthenticationEntryPoint
 import com.takealook.auth.component.JwtAuthenticationFilter
-import com.takealook.auth.component.JwtTokenProvider
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
@@ -56,12 +55,10 @@ class SecurityConfig(
                 it.pathMatchers(
                     "/auth/signin",
                     "/auth/signup",
-                    "/auth/toss/signin",
-                    "/auth/toss/refresh",
-                    "/auth/toss/userinfo",
-                    "/auth/toss/logout",
-                    "/auth/toss/logout/user-key",
                     "/auth/google/signin",
+                    "/auth/apple/signin",
+                    "/auth/kakao/signin",
+                    "/auth/refresh",
                     "/stickers",
                     "/sticker-categories",
                     "/swagger-ui.html",
