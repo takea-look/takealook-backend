@@ -1,5 +1,6 @@
 plugins {
-    id("takealook.kotlin")
+    alias(libs.plugins.takealook.spring.library.convention)
+    alias(libs.plugins.takealook.feature.module.convention)
 }
 
 dependencies {
