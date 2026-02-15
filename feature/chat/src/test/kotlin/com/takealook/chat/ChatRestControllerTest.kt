@@ -1,5 +1,6 @@
 package com.takealook.chat
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.room.CreateChatRoomUseCase
@@ -17,6 +18,7 @@ import io.jsonwebtoken.Claims
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -35,6 +37,7 @@ class ChatRestControllerTest {
     private val getUserByNameUseCase = mockk<GetUserByNameUseCase>()
     private val getUserProfileByIdUseCase = mockk<GetUserProfileByIdUseCase>()
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
+    private val chatBroadcaster = mockk<ChatBroadcaster>(relaxed = true)
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
@@ -45,6 +48,8 @@ class ChatRestControllerTest {
         getUserByNameUseCase,
         getUserProfileByIdUseCase,
         getChatUsersByRoomIdUseCase,
+        chatBroadcaster,
+        ObjectMapper(),
     )
 
     @Test
@@ -84,6 +89,7 @@ class ChatRestControllerTest {
         assertEquals("https://cdn/img.png", response.body?.imageUrl)
         assertEquals(roomId, response.body?.roomId)
         assertEquals(1L, response.body?.sender?.id)
+        verify(exactly = 1) { chatBroadcaster.broadcastToRoom(roomId, any()) }
     }
 
     @Test

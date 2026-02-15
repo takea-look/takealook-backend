@@ -1,13 +1,13 @@
 package com.takealook.chat
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.takealook.chat.ticket.WsTicketData
 import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
+import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
 import com.takealook.model.UserProfile
@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.HandshakeInfo
 import org.springframework.web.reactive.socket.WebSocketMessage
@@ -34,32 +35,38 @@ class ChatHandlerTest {
     private lateinit var chatHandler: ChatHandler
     private lateinit var wsTicketService: WsTicketService
     private lateinit var getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase
+    private lateinit var getUserByNameUseCase: GetUserByNameUseCase
     private lateinit var getUserProfileByIdUseCase: GetUserProfileByIdUseCase
     private lateinit var saveMessageUseCase: SaveMessageUseCase
     private lateinit var addReactionUseCase: AddReactionUseCase
     private lateinit var removeReactionUseCase: RemoveReactionUseCase
     private lateinit var chatBroadcaster: ChatBroadcaster
+    private lateinit var jwtTokenProvider: com.takealook.auth.component.JwtTokenProvider
 
     @BeforeEach
     fun setUp() {
         wsTicketService = mockk()
         getChatUsersByRoomIdUseCase = mockk()
+        getUserByNameUseCase = mockk()
         getUserProfileByIdUseCase = mockk()
         saveMessageUseCase = mockk()
         addReactionUseCase = mockk(relaxed = true)
         removeReactionUseCase = mockk(relaxed = true)
         chatBroadcaster = mockk(relaxed = true)
+        jwtTokenProvider = mockk()
 
         chatHandler = ChatHandler(
             objectMapper = jacksonObjectMapper(),
             getChatUsersByRoomIdUseCase = getChatUsersByRoomIdUseCase,
+            getUserByNameUseCase = getUserByNameUseCase,
             getUserProfileByIdUseCase = getUserProfileByIdUseCase,
             saveMessageUseCase = saveMessageUseCase,
             addReactionUseCase = addReactionUseCase,
             removeReactionUseCase = removeReactionUseCase,
             wsTicketService = wsTicketService,
+            jwtTokenProvider = jwtTokenProvider,
             chatBroadcaster = chatBroadcaster,
-            allowedOriginsConfig = "https://takea.look.app,http://localhost:3000"
+            allowedOriginsConfig = "https://takealook.app,http://localhost:3000"
         )
 
         coEvery { getChatUsersByRoomIdUseCase(1L) } returns listOf(com.takealook.model.ChatUser(userId = 10L, roomId = 1L, joinedAt = 0L))
@@ -67,15 +74,19 @@ class ChatHandlerTest {
 
     private fun createMockSession(
         uri: URI,
+        headers: HttpHeaders? = null,
         origin: String? = "https://takealook.app",
         sessionId: String = "test-session-id"
     ): WebSocketSession {
-        val headers = mockk<HttpHeaders>()
-        every { headers.origin } returns origin
+        val httpHeaders = headers ?: run {
+            val h = mockk<HttpHeaders>()
+            every { h.origin } returns origin
+            h
+        }
 
         val handshakeInfo = mockk<HandshakeInfo>()
         every { handshakeInfo.uri } returns uri
-        every { handshakeInfo.headers } returns headers
+        every { handshakeInfo.headers } returns httpHeaders
 
         val session = mockk<WebSocketSession>()
         every { session.handshakeInfo } returns handshakeInfo
@@ -225,5 +236,37 @@ class ChatHandlerTest {
         StepVerifier.create(result)
             .thenCancel()
             .verify()
+    }
+
+    @Test
+    fun `handle should authorize using token query when ticket missing`() = runTest {
+        val token = "jwt-token-123"
+        val session = createMockSession(
+            uri = URI.create("ws://localhost/chat?roomId=1&token=$token")
+        )
+
+        every { jwtTokenProvider.isTokenValid(token) } returns true
+        every {
+            jwtTokenProvider.getAuthentication(token)
+        } returns UsernamePasswordAuthenticationToken("token-user", token)
+
+        coEvery { getUserByNameUseCase("token-user") } returns com.takealook.model.User(id = 10L, username = "token-user", password = "pw")
+        coEvery { getUserProfileByIdUseCase(10L) } returns UserProfile(
+            id = 10L,
+            username = "token-user",
+            nickname = "Token User",
+            image = null,
+            updatedAt = LocalDateTime.now(),
+        )
+        every { session.receive() } returns Flux.empty()
+        every { chatBroadcaster.attachSession(10L, session) } returns true
+        every { chatBroadcaster.detachSession(10L, session) } returns false
+
+        val result = chatHandler.handle(session)
+
+        StepVerifier.create(result)
+            .verifyComplete()
+
+        verify(exactly = 0) { session.close(any()) }
     }
 }

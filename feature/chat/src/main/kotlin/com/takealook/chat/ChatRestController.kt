@@ -1,5 +1,6 @@
 package com.takealook.chat
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.room.CreateChatRoomUseCase
@@ -15,6 +16,7 @@ import com.takealook.model.toUserChatMessage
 import io.jsonwebtoken.Claims
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -39,7 +41,10 @@ class ChatRestController(
     private val getUserByNameUseCase: GetUserByNameUseCase,
     private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
+    private val chatBroadcaster: ChatBroadcaster,
+    private val objectMapper: ObjectMapper,
 ) {
+    private val logger = LoggerFactory.getLogger(ChatRestController::class.java)
 
     @Operation(summary = "채팅방 목록 조회", description = "사용자가 참여 중인 채팅방 목록을 조회합니다.")
     @GetMapping("/rooms")
@@ -109,7 +114,16 @@ class ChatRestController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found")
 
         val saved = saveMessageUseCase(message)
-        return ResponseEntity.ok(saved.toUserChatMessage(profile))
+        val userChatMessage = saved.toUserChatMessage(profile)
+        val payload = objectMapper.writeValueAsString(userChatMessage)
+
+        runCatching {
+            chatBroadcaster.broadcastToRoom(roomId, payload)
+        }.onFailure { error ->
+            logger.warn("Broadcast failed after save message, room=$roomId user=$senderId", error)
+        }
+
+        return ResponseEntity.ok(userChatMessage)
     }
 
     @Operation(summary = "채팅 메시지 조회", description = "특정 채팅방의 메시지 내역을 조회합니다.")

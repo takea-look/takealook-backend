@@ -2,12 +2,16 @@ package com.takealook.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.takealook.auth.component.AUTHORIZATION_HEADER
+import com.takealook.auth.component.JwtTokenProvider
+import com.takealook.auth.component.LEGACY_HEADER_STRING
 import com.takealook.chat.reaction.ReactionCommand
 import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
+import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
 import com.takealook.model.ChatReaction
@@ -19,6 +23,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Controller
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.WebSocketHandler
@@ -29,11 +34,13 @@ import reactor.core.publisher.Mono
 class ChatHandler(
     private val objectMapper: ObjectMapper,
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
+    private val getUserByNameUseCase: GetUserByNameUseCase,
     private val getUserProfileByIdUseCase: GetUserProfileByIdUseCase,
     private val saveMessageUseCase: SaveMessageUseCase,
     private val addReactionUseCase: AddReactionUseCase,
     private val removeReactionUseCase: RemoveReactionUseCase,
     private val wsTicketService: WsTicketService,
+    private val jwtTokenProvider: JwtTokenProvider,
     private val chatBroadcaster: ChatBroadcaster,
     @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
     private val allowedOriginsConfig: String,
@@ -51,27 +58,18 @@ class ChatHandler(
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
 
-        val query = session.handshakeInfo.uri.query ?: ""
-        val params = query.split("&").associate {
-            val parts = it.split("=")
-            parts[0] to (parts.getOrNull(1) ?: "")
-        }
-
-        val ticket = params["ticket"]
+        val params = parseQueryParams(session.handshakeInfo.uri?.query)
         val roomId = params["roomId"]?.toLongOrNull()
-
-        if (ticket == null || roomId == null) {
-            logger.warn("Missing ticket or roomId in WebSocket handshake")
+        if (roomId == null) {
+            logger.warn("Missing roomId in WebSocket handshake")
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
 
-        val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
-        if (ticketData == null) {
-            logger.warn("Invalid or expired ticket")
+        val authResult = authenticateSession(session.handshakeInfo.headers, params)
+        val userId = authResult.getOrElse { reason ->
+            logger.warn("WebSocket unauthorized: $reason")
             return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
         }
-
-        val userId = ticketData.userId
 
         val userProfile = getUserProfileByIdUseCase(userId) ?: run {
             logger.error("User not found: $userId")
@@ -130,6 +128,66 @@ class ChatHandler(
                 }
             }
             .awaitSingleOrNull()
+    }
+
+    private fun authenticateSession(headers: HttpHeaders, queryParams: Map<String, String>): Result<Long> {
+        val ticket = queryParams["ticket"]
+        if (ticket != null) {
+            val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
+            return if (ticketData == null) {
+                Result.failure(IllegalArgumentException("Invalid or expired ticket"))
+            } else {
+                Result.success(ticketData.userId)
+            }
+        }
+
+        val token = extractToken(headers, queryParams)
+            ?: return Result.failure(IllegalArgumentException("Missing auth token"))
+
+        if (!jwtTokenProvider.isTokenValid(token)) {
+            return Result.failure(IllegalArgumentException("Invalid JWT token"))
+        }
+
+        val principal = jwtTokenProvider.getAuthentication(token).principal
+        val username = principal as? String ?: return Result.failure(IllegalArgumentException("Invalid token principal"))
+        val user = getUserByNameUseCase(username) ?: return Result.failure(IllegalArgumentException("User not found"))
+
+        return if (user.id == null) {
+            Result.failure(IllegalArgumentException("User id missing"))
+        } else {
+            Result.success(user.id)
+        }
+    }
+
+    private fun extractToken(headers: HttpHeaders, queryParams: Map<String, String>): String? {
+        val bearer = headers[AUTHORIZATION_HEADER]?.firstOrNull()?.trim()
+        if (!bearer.isNullOrBlank()) {
+            val normalized = if (bearer.startsWith("Bearer ", ignoreCase = true)) {
+                bearer.substringAfter("Bearer ", "").trim()
+            } else {
+                bearer.trim()
+            }
+
+            return normalized.takeIf { it.isNotBlank() }
+        }
+
+        val legacy = headers[LEGACY_HEADER_STRING]?.firstOrNull()?.trim()
+        if (!legacy.isNullOrBlank()) {
+            return legacy
+        }
+
+        return queryParams["token"]?.trim()?.takeIf { it.isNotBlank() }
+            ?: queryParams["accessToken"]?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    private fun parseQueryParams(rawQuery: String?): Map<String, String> {
+        val query = rawQuery ?: return emptyMap()
+        if (query.isBlank()) return emptyMap()
+
+        return query.split("&").associate {
+            val parts = it.split("=", limit = 2)
+            parts[0] to (parts.getOrNull(1) ?: "")
+        }
     }
 
     private fun detectIncomingType(rawJson: String): MessageType {
