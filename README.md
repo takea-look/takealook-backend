@@ -77,6 +77,21 @@ docker-compose up -d
 | REDIS_HOST | Redis 호스트 | localhost |
 | REDIS_PORT | Redis 포트 | 6379 |
 
+## Issue triage
+
+이 저장소의 이슈 관리 규칙(최소 기준):
+
+- **Type**: `feat` / `bug` / `chore` 중 1개
+- **Priority**: `P0`~`P3` 중 1개
+- **Area**: `area/auth`, `area/chat`, `area/upload`, `area/ws`, `area/infra` 중 1개 이상
+- **Status**: 필요 시 `status/blocked`, `status/needs-spec` 사용
+- **Milestone**: `MVP` 또는 `Post-MVP`로 목표 릴리스 묶기
+
+**운영 규칙(권장):**
+1. 긴급도/영향도가 높은 이슈(P0)부터 라벨 정렬 후 담당자 지정
+2. 라벨/마일스톤 미지정 이슈는 `needs-spec` 또는 `blocked`로 분류해 TODO로 넘기지 않기
+3. 우선순위와 area가 명확해지면 다음 액션(개발/테스트/PR) 계획으로 바로 이어가기
+
 ## Documentation
 
 - [WebSocket 티켓 인증 시스템](./docs/architecture/websocket-authentication.md)
