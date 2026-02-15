@@ -14,7 +14,7 @@ class StorageController(
     private val service: StorageService
 ) {
 
-    @Operation(summary = "업로드 URL 생성", description = "파일 업로드를 위한 Pre-signed URL을 생성합니다.")
+    @Operation(summary = "업로드 URL 생성", description = "파일 업로드를 위한 Presigned URL을 생성합니다.")
     @GetMapping("/upload")
     fun getUploadUrl(
         @RequestParam key: String,

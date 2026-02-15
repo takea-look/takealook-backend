@@ -45,7 +45,8 @@
 
 | Method | Path | Auth | Request | Response | Note |
 |---|---|---|---|---|---|
-| `GET` | `/storage/upload?key={key}&sizeBytes={size}` | ✅ | Query params | `{ "url": "<presigned upload url>" }` | chat 전용 key 규칙: `chat/{roomId}/{timestamp}.{ext}`, 허용 확장자/용량 정책 존재 |
+| `GET` | `/storage/upload?key={key}&sizeBytes={size}` | ✅ | Query params | `{ "url": "<presigned upload url>" }` | 기존 하위 호환용. chat 전용 key 규칙: `chat/{roomId}/{timestamp}.{ext}`, 허용 확장자/용량 정책 존재 |
+| `POST` | `/uploads/presign` | ✅ | `{ roomId, contentType, sizeBytes? }` | `{ "url": "<presigned upload url>", "key": "chat/{roomId}/{timestamp}.{ext}", "headers": {"Content-Type": "..."} }` | 이미지 업로드 전용. 허용 MIME: `image/png`, `image/jpeg`, `image/jpg`, `image/webp`. Provider: Cloudflare R2 (S3-compatible presigned PUT, 10분 TTL) |
 
 ## WebSocket
 

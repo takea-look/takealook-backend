@@ -51,6 +51,14 @@
   - 주의: presigned PUT 자체로 업로드 크기 강제는 어려워 **서버 후처리/검증**이 필요
 - TTL: 10분(기본값)
 
+### `POST /uploads/presign`
+- 설명: chat 이미지 업로드용 업로드 URL 사전발급
+- 요청 body: `roomId`, `contentType`, `sizeBytes`(optional)
+- 응답: `{ url, key, headers }`
+  - `headers`는 FE 업로드 요청 시 함께 전송할 헤더
+- 검증: contentType은 `image/png|jpg|jpeg|webp`, sizeBytes는 10MB 이하
+- Provider: Cloudflare R2(현재 사용)
+
 ## WebSocket
 
 - WebSocket 계약은 별도 문서 참고:
