@@ -2,14 +2,13 @@ package com.takealook.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.takealook.chat.reaction.ReactionCommand
 import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.reaction.AddReactionUseCase
 import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
-import com.takealook.domain.chat.users.JoinChatRoomUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
-import com.takealook.chat.reaction.ReactionCommand
 import com.takealook.model.ChatMessage
 import com.takealook.model.ChatReaction
 import com.takealook.model.MessageType
@@ -25,7 +24,6 @@ import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import java.util.concurrent.ConcurrentHashMap
 
 @Controller
 class ChatHandler(
@@ -36,12 +34,11 @@ class ChatHandler(
     private val addReactionUseCase: AddReactionUseCase,
     private val removeReactionUseCase: RemoveReactionUseCase,
     private val wsTicketService: WsTicketService,
-    private val joinChatRoomUseCase: JoinChatRoomUseCase,
+    private val chatBroadcaster: ChatBroadcaster,
     @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
-    private val allowedOriginsConfig: String
+    private val allowedOriginsConfig: String,
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
-    private val sessions = ConcurrentHashMap<Long, MutableSet<WebSocketSession>>()
 
     private val allowedOrigins: Set<String> by lazy {
         allowedOriginsConfig.split(",").map { it.trim() }.toSet()
@@ -55,7 +52,7 @@ class ChatHandler(
         }
 
         val query = session.handshakeInfo.uri.query ?: ""
-        val params = query.split("&").associate { 
+        val params = query.split("&").associate {
             val parts = it.split("=")
             parts[0] to (parts.getOrNull(1) ?: "")
         }
@@ -81,53 +78,51 @@ class ChatHandler(
             return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull()
         }
 
-        joinChatRoomUseCase(userId, roomId)
+        val isRoomMember = getChatUsersByRoomIdUseCase(roomId).any { it.userId == userId }
+        if (!isRoomMember) {
+            logger.warn("User $userId is not a member of room $roomId")
+            return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
+        }
 
-        val userSessions = sessions.computeIfAbsent(userId) { ConcurrentHashMap.newKeySet() }
-        val isFirstSession = userSessions.isEmpty()
-        userSessions.add(session)
-        
+        val isFirstSession = chatBroadcaster.attachSession(userId, session)
+
         logger.info("WebSocket session established for user $userId, Room: $roomId, First: $isFirstSession")
 
-        // Broadcast JOIN message if it's the first session for this user
         if (isFirstSession) {
             broadcastSystemMessage(roomId, userId, MessageType.JOIN)
         }
 
         val incoming = session.receive()
             .map { it.payloadAsText }
-            .flatMap { msg ->
+            .flatMap { rawMessage ->
                 mono {
-                    val type = detectIncomingType(msg)
+                    val type = detectIncomingType(rawMessage)
                     if (type == MessageType.REACTION) {
-                        val command = objectMapper.readValue<ReactionCommand>(msg)
-                        handleReactionCommand(command)
+                        val command = objectMapper.readValue<ReactionCommand>(rawMessage)
+                        handleReactionCommand(command, roomId, userId)
                         return@mono null
                     }
 
-                    val chatMessage = objectMapper.readValue<ChatMessage>(msg)
-                    val profile = getUserProfileByIdUseCase(userId) ?: return@mono null
-                    val userChatMessage = chatMessage.toUserChatMessage(profile)
-                    val messageToSend = objectMapper.writeValueAsString(userChatMessage)
+                    val chatMessage = objectMapper.readValue<ChatMessage>(rawMessage)
+                    if (chatMessage.roomId != roomId) {
+                        logger.warn("Ignoring message for invalid room ${chatMessage.roomId}, expected $roomId")
+                        return@mono null
+                    }
 
-                    // Persist first (so replyToId validation can fail fast)
-                    saveMessageUseCase(chatMessage)
-                    broadcastToRoom(chatMessage.roomId, messageToSend)
+                    val normalizedMessage = chatMessage.copy(senderId = userId, roomId = roomId)
+                    val savedMessage = saveMessageUseCase(normalizedMessage)
+                    val userChatMessage = savedMessage.toUserChatMessage(userProfile)
+                    val messageJson = objectMapper.writeValueAsString(userChatMessage)
+                    chatBroadcaster.broadcastToRoom(roomId, messageJson)
                 }
             }
             .doOnError { e -> logger.error("Incoming stream error for user $userId: ${e.message}") }
             .then()
 
-        return@mono Mono.`when`(incoming)
+        Mono.when(incoming)
             .doFinally { signalType ->
-                val remainingSessions = sessions.computeIfPresent(userId) { _, sessionSet ->
-                    sessionSet.remove(session)
-                    if (sessionSet.isEmpty()) null else sessionSet
-                }
-                
-                val isLastSession = remainingSessions == null
+                val isLastSession = chatBroadcaster.detachSession(userId, session)
                 logger.info("Session closed for user $userId, Last: $isLastSession, Signal: $signalType")
-                
                 if (isLastSession) {
                     mono {
                         broadcastSystemMessage(roomId, userId, MessageType.LEAVE)
@@ -142,12 +137,17 @@ class ChatHandler(
             val node = objectMapper.readTree(rawJson)
             val typeText = node.get("type")?.asText()?.uppercase()
             if (typeText == "REACTION") MessageType.REACTION else MessageType.CHAT
-        } catch {
+        } catch (ex: Exception) {
             MessageType.CHAT
         }
     }
 
-    private suspend fun handleReactionCommand(command: ReactionCommand) {
+    private suspend fun handleReactionCommand(command: ReactionCommand, roomId: Long, userId: Long) {
+        if (command.roomId != roomId) {
+            logger.warn("Ignoring reaction for room ${command.roomId}, expected $roomId")
+            return
+        }
+
         val action = command.action.lowercase()
         if (action != "add" && action != "remove") {
             logger.warn("Invalid reaction action: ${command.action}")
@@ -158,36 +158,25 @@ class ChatHandler(
             addReactionUseCase(
                 ChatReaction(
                     messageId = command.messageId,
-                    userId = command.userId,
+                    userId = userId,
                     reaction = command.reaction,
                     createdAt = System.currentTimeMillis(),
                 )
             )
         } else {
-            removeReactionUseCase(command.messageId, command.userId, command.reaction)
+            removeReactionUseCase(command.messageId, userId, command.reaction)
         }
 
         val payload = UserChatReaction(
             roomId = command.roomId,
             messageId = command.messageId,
-            userId = command.userId,
+            userId = userId,
             reaction = command.reaction,
             createdAt = System.currentTimeMillis(),
         )
 
-        broadcastToRoom(command.roomId, objectMapper.writeValueAsString(payload))
-    }
-
-    private suspend fun broadcastToRoom(roomId: Long, messageJson: String) {
-        val users = getChatUsersByRoomIdUseCase(roomId)
-        users.forEach { user ->
-            sessions[user.userId]?.filter { it.isOpen }?.forEach { targetSession ->
-                targetSession.send(Mono.just(targetSession.textMessage(messageJson)))
-                    .doOnError { e -> logger.error("Broadcast error to user ${user.userId}: ${e.message}") }
-                    .onErrorResume { Mono.empty() }
-                    .awaitSingleOrNull()
-            }
-        }
+        val messageJson = objectMapper.writeValueAsString(payload)
+        chatBroadcaster.broadcastToRoom(command.roomId, messageJson)
     }
 
     private suspend fun broadcastSystemMessage(roomId: Long, userId: Long, type: MessageType) {
@@ -196,9 +185,9 @@ class ChatHandler(
             roomId = roomId,
             sender = profile,
             type = type,
-            imageUrl = null
+            imageUrl = null,
         )
         val messageJson = objectMapper.writeValueAsString(systemMessage)
-        broadcastToRoom(roomId, messageJson)
+        chatBroadcaster.broadcastToRoom(roomId, messageJson)
     }
 }

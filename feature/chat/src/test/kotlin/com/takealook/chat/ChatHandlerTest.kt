@@ -1,22 +1,29 @@
 package com.takealook.chat
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.takealook.chat.ticket.WsTicketData
 import com.takealook.chat.ticket.WsTicketService
 import com.takealook.domain.chat.message.SaveMessageUseCase
+import com.takealook.domain.chat.reaction.AddReactionUseCase
+import com.takealook.domain.chat.reaction.RemoveReactionUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
+import com.takealook.model.ChatMessage
 import com.takealook.model.UserProfile
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.HandshakeInfo
+import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.net.URI
@@ -29,6 +36,9 @@ class ChatHandlerTest {
     private lateinit var getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase
     private lateinit var getUserProfileByIdUseCase: GetUserProfileByIdUseCase
     private lateinit var saveMessageUseCase: SaveMessageUseCase
+    private lateinit var addReactionUseCase: AddReactionUseCase
+    private lateinit var removeReactionUseCase: RemoveReactionUseCase
+    private lateinit var chatBroadcaster: ChatBroadcaster
 
     @BeforeEach
     fun setUp() {
@@ -36,15 +46,23 @@ class ChatHandlerTest {
         getChatUsersByRoomIdUseCase = mockk()
         getUserProfileByIdUseCase = mockk()
         saveMessageUseCase = mockk()
+        addReactionUseCase = mockk(relaxed = true)
+        removeReactionUseCase = mockk(relaxed = true)
+        chatBroadcaster = mockk(relaxed = true)
 
         chatHandler = ChatHandler(
             objectMapper = jacksonObjectMapper(),
             getChatUsersByRoomIdUseCase = getChatUsersByRoomIdUseCase,
             getUserProfileByIdUseCase = getUserProfileByIdUseCase,
             saveMessageUseCase = saveMessageUseCase,
+            addReactionUseCase = addReactionUseCase,
+            removeReactionUseCase = removeReactionUseCase,
             wsTicketService = wsTicketService,
-            allowedOriginsConfig = "https://takealook.app,http://localhost:3000"
+            chatBroadcaster = chatBroadcaster,
+            allowedOriginsConfig = "https://takea.look.app,http://localhost:3000"
         )
+
+        coEvery { getChatUsersByRoomIdUseCase(1L) } returns listOf(com.takealook.model.ChatUser(userId = 10L, roomId = 1L, joinedAt = 0L))
     }
 
     private fun createMockSession(
@@ -78,13 +96,13 @@ class ChatHandlerTest {
         StepVerifier.create(result)
             .verifyComplete()
 
-        io.mockk.verify { session.close(CloseStatus.POLICY_VIOLATION) }
+        verify { session.close(CloseStatus.POLICY_VIOLATION) }
     }
 
     @Test
     fun `handle should close session when ticket is invalid or expired`() = runTest {
         val session = createMockSession(
-            uri = URI.create("ws://localhost/chat?ticket=invalid-ticket")
+            uri = URI.create("ws://localhost/chat?ticket=invalid-ticket&roomId=1")
         )
 
         coEvery { wsTicketService.validateAndConsumeTicket("invalid-ticket") } returns null
@@ -94,13 +112,13 @@ class ChatHandlerTest {
         StepVerifier.create(result)
             .verifyComplete()
 
-        io.mockk.verify { session.close(CloseStatus.NOT_ACCEPTABLE) }
+        verify { session.close(CloseStatus.NOT_ACCEPTABLE) }
     }
 
     @Test
     fun `handle should close session when origin is not allowed`() = runTest {
         val session = createMockSession(
-            uri = URI.create("ws://localhost/chat?ticket=valid-ticket"),
+            uri = URI.create("ws://localhost/chat?ticket=valid-ticket&roomId=1"),
             origin = "https://evil-site.com"
         )
 
@@ -109,51 +127,103 @@ class ChatHandlerTest {
         StepVerifier.create(result)
             .verifyComplete()
 
-        io.mockk.verify { session.close(CloseStatus.POLICY_VIOLATION) }
+        verify { session.close(CloseStatus.POLICY_VIOLATION) }
     }
 
     @Test
-    fun `handle should close session when user not found after valid ticket`() = runTest {
-        val session = createMockSession(
-            uri = URI.create("ws://localhost/chat?ticket=valid-ticket")
+    fun `handle should close session when ticket user is not room member`() = runTest {
+        coEvery { wsTicketService.validateAndConsumeTicket("valid-ticket") } returns WsTicketData(userId = 123L, username = "u")
+        coEvery { getUserProfileByIdUseCase(123L) } returns UserProfile(
+            id = 123L,
+            username = "u",
+            nickname = "u",
+            image = null,
+            updatedAt = LocalDateTime.now(),
         )
+        coEvery { getChatUsersByRoomIdUseCase(1L) } returns emptyList()
 
-        val ticketData = WsTicketData(userId = 123L, username = "testuser")
-        coEvery { wsTicketService.validateAndConsumeTicket("valid-ticket") } returns ticketData
-        coEvery { getUserProfileByIdUseCase(123L) } returns null
+        val session = createMockSession(
+            uri = URI.create("ws://localhost/chat?ticket=valid-ticket&roomId=1"),
+            sessionId = "not-member-session"
+        )
 
         val result = chatHandler.handle(session)
 
         StepVerifier.create(result)
             .verifyComplete()
 
-        io.mockk.verify { session.close(CloseStatus.BAD_DATA) }
+        verify { session.close(CloseStatus.NOT_ACCEPTABLE) }
     }
 
     @Test
-    fun `handle should establish session when ticket is valid and user exists`() = runTest {
+    fun `handle should establish session when ticket and membership valid`() = runTest {
         val session = createMockSession(
-            uri = URI.create("ws://localhost/chat?ticket=valid-ticket")
+            uri = URI.create("ws://localhost/chat?ticket=valid-ticket&roomId=1")
         )
 
-        val ticketData = WsTicketData(userId = 456L, username = "validuser")
+        val ticketData = WsTicketData(userId = 10L, username = "validuser")
         val userProfile = UserProfile(
-            id = 456L,
+            id = 10L,
             username = "validuser",
             nickname = "Valid User",
             image = null,
-            updatedAt = LocalDateTime.now()
+            updatedAt = LocalDateTime.now(),
         )
 
         coEvery { wsTicketService.validateAndConsumeTicket("valid-ticket") } returns ticketData
-        coEvery { getUserProfileByIdUseCase(456L) } returns userProfile
-        every { session.receive() } returns reactor.core.publisher.Flux.empty()
+        coEvery { getUserProfileByIdUseCase(10L) } returns userProfile
+        every { session.receive() } returns Flux.empty()
+        every { chatBroadcaster.attachSession(10L, session) } returns true
+        every { chatBroadcaster.detachSession(10L, session) } returns false
 
         val result = chatHandler.handle(session)
 
         StepVerifier.create(result)
             .verifyComplete()
 
-        io.mockk.verify(exactly = 0) { session.close(any()) }
+        verify(exactly = 0) { session.close(any()) }
+    }
+
+    @Test
+    fun `ws should persist chat message with authenticated user id`() = runTest {
+        val inbound = Flux.just(
+            mockk<WebSocketMessage>(relaxed = true) {
+                every { payloadAsText } returns jacksonObjectMapper().writeValueAsString(
+                    ChatMessage(
+                        id = null,
+                        roomId = 1L,
+                        senderId = 999L,
+                        imageUrl = "https://cdn/img.png",
+                        replyToId = null,
+                    )
+                )
+            }
+        )
+
+        val session = createMockSession(uri = URI.create("ws://localhost/chat?ticket=valid-ticket&roomId=1"))
+        coEvery { wsTicketService.validateAndConsumeTicket("valid-ticket") } returns WsTicketData(userId = 10L, username = "validuser")
+        coEvery { getUserProfileByIdUseCase(10L) } returns UserProfile(
+            id = 10L,
+            username = "validuser",
+            nickname = "Valid",
+            image = null,
+            updatedAt = LocalDateTime.now(),
+        )
+        coEvery { saveMessageUseCase(any()) } returns ChatMessage(
+            id = 100L,
+            roomId = 1L,
+            senderId = 10L,
+            imageUrl = "https://cdn/img.png",
+            replyToId = null,
+            createdAt = 1000L
+        )
+        every { session.receive() } returns inbound
+        every { chatBroadcaster.detachSession(10L, session) } returns false
+
+        val result = chatHandler.handle(session)
+
+        StepVerifier.create(result)
+            .thenCancel()
+            .verify()
     }
 }
