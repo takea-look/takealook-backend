@@ -14,13 +14,22 @@
   - 응답: `ChatRoom[]`
   - 비고: 정렬/페이징은 별도 스펙 문서에서 확정
 
-### 2) 채팅 메시지 조회
-- `GET /chat/messages?roomId={roomId}`
+### 2) 채팅 메시지 조회/전송
+- `GET /chat/rooms/{roomId}/messages?limit={30}&before={createdAt}`
   - 응답: `UserChatMessage[]`
   - reply:
     - `replyToId` + `replyTo(sender,imageUrl,createdAt)`
   - blind:
     - `isBlinded=true`이면 `imageUrl=null`
+- `POST /chat/rooms/{roomId}/messages`
+  - body: `{ imageUrl, replyToId? }`
+  - 응답: `UserChatMessage`
+  - text content는 미사용(MVP에서 image-only)
+
+### 기존 호환 엔드포인트
+- `GET /chat/messages?roomId={roomId}`
+  - 응답: `UserChatMessage[]`
+  - 구 스펙 호환용
 
 ### 3) WebSocket 티켓 발급
 - `POST /chat/ticket`

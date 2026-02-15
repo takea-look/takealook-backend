@@ -17,7 +17,7 @@
   - 필터: `isPublic=true|false` optional
 - 응답: `ChatRoom[]`
 
-### `GET /chat/messages?roomId={roomId}`
+### `GET /chat/rooms/{roomId}/messages?limit={30}&before={cursor}&beforeMessageId={id}`
 - 설명: 특정 채팅방 메시지 내역 조회
 - 저장/보존 정책(초안, 확정 필요):
   - 기본: **영구 저장**(신고/블라인드 근거 데이터 필요)
@@ -31,6 +31,12 @@
   - `replyToId`: 답장 대상 메시지 ID
   - `replyTo`: 답장 대상 요약(`sender`, `imageUrl`, `createdAt`) — replyToId가 있을 때 제공
 - 정렬(제안): 최신→과거(desc)
+
+
+### `POST /chat/rooms/{roomId}/messages`
+- 설명: 특정 채팅방 이미지 메시지 전송
+- 요청 body: `imageUrl`, `replyToId`(optional)
+- 응답: `UserChatMessage`
 
 ## Storage
 

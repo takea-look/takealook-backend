@@ -35,7 +35,8 @@
 | `GET` | `/chat/rooms` | ✅ | 없음 | `ChatRoom[]` | 참여 채팅방 목록 |
 | `POST` | `/chat/rooms` | ✅ | `{ name, isPublic, maxParticipants }` | `ChatRoom` | 채팅방 생성 |
 | `GET` | `/chat/rooms/{id}` | ✅ | Path: `id` | `ChatRoom` | 채팅방 단건 조회 |
-| `GET` | `/chat/messages?roomId={roomId}&limit={30}&before={cursor}&beforeMessageId={id}` | ✅ | Query params | `UserChatMessage[]` | 기본 `limit=30`, 커서 조회 기준: `before` 또는 `beforeMessageId` |
+| `GET` | `/chat/rooms/{id}/messages?limit={30}&before={cursor}&beforeMessageId={id}` | ✅ | Query params | `UserChatMessage[]` | 기본 `limit=30`, 커서 조회 기준: `before` 또는 `beforeMessageId` |
+| `POST` | `/chat/rooms/{roomId}/messages` | ✅ | `roomId`, `{ imageUrl, replyToId? }` | `UserChatMessage` | 이미지 URL 기반 메시지 전송. 텍스트 미지원(MVP). |
 | `POST` | `/chat/messages/report?messageId={id}&reporterUserId={userId}&reason={reason}` | ❌ | Query params | `200 OK` | 10회 이상 누적시 자동 블라인드 |
 | `GET` | `/chat/messages/{id}/reactions` | ✅ | Path: `id` | `[{ reaction, count }]` | `ReactionSummaryItem` 배열 |
 | `POST` | `/chat/ticket` | ✅ | 없음 | `WsTicket` (`ticket`, `expiresIn`) | WS 연결 전용 티켓 발급 |
