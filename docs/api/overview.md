@@ -1,0 +1,78 @@
+# API Contract Overview (Auth · Chat · Storage)
+
+> 목적: FE/BE가 동일한 인터페이스 기준으로 작업할 수 있도록 최소 API 계약을 정리
+> 기준: 현재 `main` 브랜치 구현 기준 (`2026-02-15`)
+
+## 공통 인증 규칙
+
+- 기본 인증 헤더: `Authorization: Bearer <JWT>`
+- 레거시 호환 헤더: `accessToken: <JWT>`
+  - `JwtAuthenticationFilter`는 Bearer 우선, 없으면 `accessToken` 헤더로 폴백 처리
+
+## 인증 API (`/auth`)
+
+| Method | Path | Auth | Request | Response | Note |
+|---|---|---|---|---|---|
+| `POST` | `/auth/signin` | ❌ | `LoginRequest` (`username`, `password`) | `LoginResponse` (`accessToken`) | 아이디/비번 로그인 |
+| `POST` | `/auth/signup` | ❌ | `LoginRequest` | `200 OK` (body 없음) | 사용자 생성 |
+| `POST` | `/auth/google/signin` | ❌ | `GoogleLoginRequest` (`idToken`) | `LoginResponse` (`accessToken`) | Google OAuth 로그인 |
+| `POST` | `/auth/toss/signin` | ❌ | `TossLoginRequest` (`authorizationCode`, `referrer`) | `LoginResponse` (`accessToken`, `refreshToken`) | 토스 로그인 |
+| `POST` | `/auth/toss/refresh` | ❌ | `RefreshTokenRequest` (`refreshToken`) | `LoginResponse` (`accessToken`) | 토큰 재발급 |
+| `GET` | `/auth/toss/userinfo` | ✅ (`accessToken` 헤더) | 없음 | `UserInfo` | 토스 사용자 정보 조회 |
+| `POST` | `/auth/toss/logout` | ✅ (`accessToken` 헤더) | 없음 | `204 No Content` | Access Token 기반 로그아웃 |
+| `POST` | `/auth/toss/logout/user-key` | ❌ | `LogoutByUserKeyRequest` (`userKey`) | `204 No Content` | User Key 기반 로그아웃 |
+
+## 사용자 API (`/user`)
+
+| Method | Path | Auth | Request | Response | Note |
+|---|---|---|---|---|---|
+| `PATCH` | `/user/profile/me` | ✅ | `{ "nickname"?, "imageUrl"? }` | `UserProfile` | 닉네임은 최초 1회만 변경 가능 |
+| `GET` | `/user/profile/me` | ✅ | 없음 | `UserProfile` | 현재 로그인 사용자 프로필 |
+| `GET` | `/user/profile?userId={id}` | ❌ | Query: `userId` | `UserProfile` | 공개 프로필 조회 |
+
+## 채팅 API (`/chat`)
+
+| Method | Path | Auth | Request | Response | Note |
+|---|---|---|---|---|---|
+| `GET` | `/chat/rooms` | ✅ | 없음 | `ChatRoom[]` | 참여 채팅방 목록 |
+| `POST` | `/chat/rooms` | ✅ | `{ name, isPublic, maxParticipants }` | `ChatRoom` | 채팅방 생성 |
+| `GET` | `/chat/rooms/{id}` | ✅ | Path: `id` | `ChatRoom` | 채팅방 단건 조회 |
+| `GET` | `/chat/messages?roomId={roomId}&limit={30}&before={cursor}&beforeMessageId={id}` | ✅ | Query params | `UserChatMessage[]` | 기본 `limit=30`, 커서 조회 기준: `before` 또는 `beforeMessageId` |
+| `POST` | `/chat/messages/report?messageId={id}&reporterUserId={userId}&reason={reason}` | ❌ | Query params | `200 OK` | 10회 이상 누적시 자동 블라인드 |
+| `GET` | `/chat/messages/{id}/reactions` | ✅ | Path: `id` | `[{ reaction, count }]` | `ReactionSummaryItem` 배열 |
+| `POST` | `/chat/ticket` | ✅ | 없음 | `WsTicket` (`ticket`, `expiresIn`) | WS 연결 전용 티켓 발급 |
+
+## 저장소 업로드 API (`/storage`)
+
+| Method | Path | Auth | Request | Response | Note |
+|---|---|---|---|---|---|
+| `GET` | `/storage/upload?key={key}&sizeBytes={size}` | ✅ | Query params | `{ "url": "<presigned upload url>" }` | chat 전용 key 규칙: `chat/{roomId}/{timestamp}.{ext}`, 허용 확장자/용량 정책 존재 |
+
+## WebSocket
+
+- WS 엔드포인트: `ws(s)://{host}/chat?ticket={ticket}&roomId={roomId}`
+- 연결 전 `POST /chat/ticket` 호출로 ticket 획득 필수
+- Inbound 메시지:
+  - `ChatMessage` JSON(이미지 메시지 기반)
+  - 리액션은 `{ roomId, messageId, userId, reaction, action: add|remove }`
+- Outbound 메시지:
+  - `UserChatMessage` (CHAT/JOIN/LEAVE)
+  - `UserChatReaction`
+- **Typing/read receipts**: 현재 구현에서 별도 REST/WS event로 미제공 (MVP TODO)
+
+## 에러 바디 형식(현재 예시)
+
+도메인 예외는 아래 공통 형태(`ErrorResponse`)를 반환.
+
+```json
+{
+  "status": 401,
+  "reason": "INVALID_CREDENTIALS",
+  "message": "Invalid username or password"
+}
+```
+
+## 보완/TODO (실 운영 정합성)
+
+- 업로드 API/타이핑/리드리시트 등 일부 에러는 핸들러 통일이 필요함 (`IllegalArgumentException` → 400 매핑 권장)
+- `error code` 정렬 및 문서 버전 표준화는 다음 티켓에서 확정 권장

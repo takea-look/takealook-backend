@@ -4,6 +4,7 @@
 - [WebSocket 티켓 인증 시스템](./architecture/websocket-authentication.md)
 
 ## API Guides
+- [API 계약 오버뷰 (Auth/Chat/Storage)](./api/overview.md)
 - [REST API 계약(초안)](./api/rest.md)
 - [Chat REST Controller 설계(초안)](./api/chat-rest.md)
 - [WebSocket 채팅 연결 가이드](./api/websocket-chat.md)
