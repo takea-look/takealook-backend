@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
+import java.time.Instant
 import java.time.Duration
 
 @Service
@@ -14,6 +15,7 @@ class StorageService(
     fun generateUploadUrl(
         key: String,
         sizeBytes: Long? = null,
+        contentType: String? = null,
     ): String {
         validateKey(key)
         validateSize(sizeBytes)
@@ -21,6 +23,11 @@ class StorageService(
         val putObjectRequest = PutObjectRequest.builder()
             .bucket(props.bucket)
             .key(key)
+            .apply {
+                if (!contentType.isNullOrBlank()) {
+                    contentType(contentType)
+                }
+            }
             .build()
 
         val presignRequest = PutObjectPresignRequest.builder()
@@ -29,6 +36,35 @@ class StorageService(
             .build()
 
         return s3Presigner.presignPutObject(presignRequest).url().toString()
+    }
+
+    fun generateChatMessageUploadKey(roomId: Long, mimeType: String): String {
+        validateRoomId(roomId)
+        val ext = extensionForMime(mimeType)
+        val timestamp = Instant.now().toEpochMilli()
+        return "${props.allowedKeyPrefix}$roomId/$timestamp.$ext"
+    }
+
+    fun validateChatUploadKeyAndSize(key: String, sizeBytes: Long?) {
+        validateKey(key)
+        validateSize(sizeBytes)
+    }
+
+    private fun validateRoomId(roomId: Long) {
+        if (roomId <= 0) {
+            throw IllegalArgumentException("roomId must be greater than 0")
+        }
+    }
+
+    fun extensionForMime(mimeType: String): String {
+        val normalized = mimeType.lowercase().trim().substringBefore(';').trim()
+        return when (normalized) {
+            "image/png" -> "png"
+            "image/jpeg" -> "jpeg"
+            "image/jpg" -> "jpg"
+            "image/webp" -> "webp"
+            else -> throw IllegalArgumentException("Unsupported mime type: $mimeType")
+        }
     }
 
     private fun validateKey(key: String) {

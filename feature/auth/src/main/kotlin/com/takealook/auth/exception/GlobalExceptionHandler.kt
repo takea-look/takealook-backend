@@ -89,6 +89,19 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse)
     }
 
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+        log.warn("IllegalArgumentException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "INVALID_REQUEST",
+            message = ex.message ?: "Invalid request"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
     @ExceptionHandler(AuthFlowDeprecatedException::class)
     fun handleAuthFlowDeprecatedException(ex: AuthFlowDeprecatedException): ResponseEntity<ErrorResponse> {
         val status = HttpStatus.GONE
