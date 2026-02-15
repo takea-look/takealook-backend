@@ -89,6 +89,30 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse)
     }
 
+    @ExceptionHandler(AuthFlowDeprecatedException::class)
+    fun handleAuthFlowDeprecatedException(ex: AuthFlowDeprecatedException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.GONE
+        log.warn("AuthFlowDeprecatedException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "AUTH_FLOW_DEPRECATED",
+            message = ex.message ?: "This auth flow is deprecated"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(UnsupportedSocialProviderException::class)
+    fun handleUnsupportedSocialProviderException(ex: UnsupportedSocialProviderException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.NOT_IMPLEMENTED
+        log.warn("UnsupportedSocialProviderException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "UNSUPPORTED_SOCIAL_PROVIDER",
+            message = ex.message ?: "This social provider is not supported yet"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
     data class ErrorResponse(
         val status: Int,
         val reason: String,

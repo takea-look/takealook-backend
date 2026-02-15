@@ -13,14 +13,12 @@
 
 | Method | Path | Auth | Request | Response | Note |
 |---|---|---|---|---|---|
-| `POST` | `/auth/signin` | ❌ | `LoginRequest` (`username`, `password`) | `LoginResponse` (`accessToken`) | 아이디/비번 로그인 |
-| `POST` | `/auth/signup` | ❌ | `LoginRequest` | `200 OK` (body 없음) | 사용자 생성 |
-| `POST` | `/auth/google/signin` | ❌ | `GoogleLoginRequest` (`idToken`) | `LoginResponse` (`accessToken`) | Google OAuth 로그인 |
-| `POST` | `/auth/toss/signin` | ❌ | `TossLoginRequest` (`authorizationCode`, `referrer`) | `LoginResponse` (`accessToken`, `refreshToken`) | 토스 로그인 |
-| `POST` | `/auth/toss/refresh` | ❌ | `RefreshTokenRequest` (`refreshToken`) | `LoginResponse` (`accessToken`) | 토큰 재발급 |
-| `GET` | `/auth/toss/userinfo` | ✅ (`accessToken` 헤더) | 없음 | `UserInfo` | 토스 사용자 정보 조회 |
-| `POST` | `/auth/toss/logout` | ✅ (`accessToken` 헤더) | 없음 | `204 No Content` | Access Token 기반 로그아웃 |
-| `POST` | `/auth/toss/logout/user-key` | ❌ | `LogoutByUserKeyRequest` (`userKey`) | `204 No Content` | User Key 기반 로그아웃 |
+| `POST` | `/auth/signin` | ❌ | - | `ErrorResponse` | `410 GONE` (deprecated) |
+| `POST` | `/auth/signup` | ❌ | - | `ErrorResponse` | `410 GONE` (deprecated) |
+| `POST` | `/auth/google/signin` | ❌ | `GoogleLoginRequest` (`idToken`) | `LoginResponse` (`accessToken`, `refreshToken`) | Google OAuth 로그인 |
+| `POST` | `/auth/apple/signin` | ❌ | `GoogleLoginRequest` 형태 | `501` | Apple 로그인 미지원(계획) |
+| `POST` | `/auth/kakao/signin` | ❌ | `GoogleLoginRequest` 형태 | `501` | Kakao 로그인 미지원(계획) |
+| `POST` | `/auth/refresh` | ❌ | `RefreshTokenRequest` (`refreshToken`) | `LoginResponse` (`accessToken`) | refresh 토큰 재발급 |
 
 ## 사용자 API (`/user`)
 
