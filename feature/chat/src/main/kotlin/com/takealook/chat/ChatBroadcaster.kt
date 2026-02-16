@@ -1,6 +1,7 @@
 package com.takealook.chat
 
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class ChatBroadcaster(
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger(ChatBroadcaster::class.java)
     private val sessions = ConcurrentHashMap<Long, MutableSet<WebSocketSession>>()
@@ -42,8 +44,14 @@ class ChatBroadcaster(
                     return@forEach
                 }
 
+                meterRegistry.counter("takealook_chat_ws_delivered_total", "room", roomId.toString(), "outcome", "attempt").increment()
+
                 session.send(Mono.just(session.textMessage(messageJson)))
+                    .doOnSuccess {
+                        meterRegistry.counter("takealook_chat_ws_delivered_total", "room", roomId.toString(), "outcome", "success").increment()
+                    }
                     .doOnError { e ->
+                        meterRegistry.counter("takealook_chat_ws_delivered_total", "room", roomId.toString(), "outcome", "error").increment()
                         logger.error("Broadcast error to user ${user.userId}: ${e.message}")
                         userSessions.remove(session)
                     }

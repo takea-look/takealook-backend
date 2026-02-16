@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(projects.core.domain)
     implementation(libs.aws.s3.core)
+    implementation(libs.micrometer.core)
 
     testImplementation(libs.mockk)
     testImplementation(libs.spring.boot.starter.test)

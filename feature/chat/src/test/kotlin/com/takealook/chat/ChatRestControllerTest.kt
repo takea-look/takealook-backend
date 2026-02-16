@@ -20,6 +20,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import io.micrometer.core.instrument.MeterRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -39,6 +40,7 @@ class ChatRestControllerTest {
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
     private val chatBroadcaster = mockk<ChatBroadcaster>(relaxed = true)
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+    private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
@@ -51,6 +53,7 @@ class ChatRestControllerTest {
         getChatUsersByRoomIdUseCase,
         chatBroadcaster,
         objectMapper,
+        meterRegistry,
     )
 
     @Test

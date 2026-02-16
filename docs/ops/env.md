@@ -51,3 +51,13 @@
 ## 로깅/모니터링(최소)
 - 서버 로그는 기본적으로 표준 출력으로 남깁니다.
 - 운영에서는 Cloud provider 로그 수집(예: CloudWatch/Stackdriver/Datadog 등)에 연결 권장.
+
+## Observability/Monitoring
+- `MANAGEMENT_ENDPOINTS` (default: `health,info,prometheus,metrics`)
+- `MANAGEMENT_HEALTH_DETAILS` (default: `never`)
+- `MANAGEMENT_HEALTH_PROBES` (default: `false`)
+- `SENTRY_DSN` (empty = 비활성)
+- `SENTRY_ENV` (default: `local`)
+- `SENTRY_TRACES_SAMPLE_RATE` (default: `0.0`)
+- `SENTRY_SEND_PII` (default: `false`)
+- 요청 ID: `X-Request-Id` (미입력 시 서버가 생성)

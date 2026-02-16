@@ -11,6 +11,7 @@ dependencies {
     implementation(libs.spring.boot.starter.security)
     implementation(libs.jjwt.api)
     implementation(libs.kotlinx.coroutines.reactor)
+    implementation(libs.micrometer.core)
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.security.test)

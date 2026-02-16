@@ -11,6 +11,7 @@ import com.takealook.model.auth.LoginResponse
 import com.takealook.model.auth.RefreshTokenRequest
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.model.User
+import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
@@ -29,7 +30,12 @@ class AuthController(
     private val saveUserUseCase: SaveUserUseCase,
     private val jwtTokenProvider: JwtTokenProvider,
     private val googleAuthService: GoogleAuthService,
+    private val meterRegistry: MeterRegistry,
 ) {
+
+    private fun recordAuthEvent(provider: String, outcome: String) {
+        meterRegistry.counter("takealook_auth_requests_total", "provider", provider, "outcome", outcome).increment()
+    }
 
     @Operation(
         summary = "구버전 로그인(비권장)",
@@ -38,6 +44,7 @@ class AuthController(
     )
     @PostMapping("/signin")
     suspend fun deprecatedSignIn(@RequestBody body: Map<String, String>): Nothing {
+        recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
             "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
         )
@@ -50,8 +57,10 @@ class AuthController(
     )
     @PostMapping("/signup")
     suspend fun deprecatedSignUp(@RequestBody body: Map<String, String>): Nothing {
+        recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
-            "username/password signup is deprecated. Use SNS onboarding flow managed by provider.")
+            "username/password signup is deprecated. Use SNS onboarding flow managed by provider."
+        )
     }
 
     @Operation(
@@ -61,22 +70,28 @@ class AuthController(
     )
     @PostMapping("/google/signin")
     suspend fun loginWithGoogle(@RequestBody request: GoogleLoginRequest): LoginResponse {
-        val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
-        val sub = tokenInfo.sub ?: throw RuntimeException("Invalid google token")
+        return try {
+            val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
+            val sub = tokenInfo.sub ?: throw RuntimeException("Invalid google token")
 
-        var user = getUserByNameUseCase("google_$sub")
-        if (user == null) {
-            val randomPassword = java.util.UUID.randomUUID().toString()
-            user = User(
-                username = "google_$sub",
-                password = randomPassword,
-            )
-            saveUserUseCase(user)
+            var user = getUserByNameUseCase("google_$sub")
+            if (user == null) {
+                val randomPassword = java.util.UUID.randomUUID().toString()
+                user = User(
+                    username = "google_$sub",
+                    password = randomPassword,
+                )
+                saveUserUseCase(user)
+            }
+
+            val accessToken = jwtTokenProvider.createToken(user.username)
+            val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
+            recordAuthEvent("google", "success")
+            LoginResponse(accessToken, refreshToken)
+        } catch (ex: Exception) {
+            recordAuthEvent("google", "error")
+            throw ex
         }
-
-        val accessToken = jwtTokenProvider.createToken(user.username)
-        val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
-        return LoginResponse(accessToken, refreshToken)
     }
 
     @Operation(
@@ -86,6 +101,7 @@ class AuthController(
     )
     @PostMapping("/apple/signin")
     suspend fun loginWithApple(@RequestBody request: Map<String, String>): LoginResponse {
+        recordAuthEvent("apple", "unsupported")
         throw UnsupportedSocialProviderException(
             "Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
         )
@@ -98,6 +114,7 @@ class AuthController(
     )
     @PostMapping("/kakao/signin")
     suspend fun loginWithKakao(@RequestBody request: Map<String, String>): LoginResponse {
+        recordAuthEvent("kakao", "unsupported")
         throw UnsupportedSocialProviderException(
             "Kakao provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
         )
@@ -110,8 +127,14 @@ class AuthController(
     )
     @PostMapping("/refresh")
     suspend fun refresh(@RequestBody request: RefreshTokenRequest): LoginResponse {
-        val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
-        return LoginResponse(newAccessToken)
+        return try {
+            val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
+            recordAuthEvent("refresh", "success")
+            LoginResponse(newAccessToken)
+        } catch (ex: Exception) {
+            recordAuthEvent("refresh", "error")
+            throw ex
+        }
     }
 
     @Operation(
@@ -120,11 +143,20 @@ class AuthController(
     )
     @GetMapping("/me")
     suspend fun getSession(@RequestHeader("Authorization") token: String): ResponseEntity<Map<String, String>> {
-        val accessToken = token.removePrefix("Bearer ").trim()
-        if (!jwtTokenProvider.isTokenValid(accessToken)) {
-            throw InvalidCredentialsException("Invalid token")
+        return try {
+            val accessToken = token.removePrefix("Bearer ").trim()
+            if (!jwtTokenProvider.isTokenValid(accessToken)) {
+                recordAuthEvent("session", "error")
+                throw InvalidCredentialsException("Invalid token")
+            }
+            val claims = jwtTokenProvider.parseClaims(accessToken)
+            recordAuthEvent("session", "success")
+            ResponseEntity.ok(mapOf("username" to claims.subject))
+        } catch (ex: Exception) {
+            if (ex !is InvalidCredentialsException) {
+                recordAuthEvent("session", "error")
+            }
+            throw ex
         }
-        val claims = jwtTokenProvider.parseClaims(accessToken)
-        return ResponseEntity.ok(mapOf("username" to claims.subject))
     }
 }

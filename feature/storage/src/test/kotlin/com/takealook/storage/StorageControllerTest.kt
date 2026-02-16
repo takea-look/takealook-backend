@@ -1,5 +1,6 @@
 package com.takealook.storage
 
+import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -9,7 +10,8 @@ import org.springframework.http.HttpStatus
 class StorageControllerTest {
 
     private val service = mockk<StorageService>()
-    private val controller = StorageController(service)
+    private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
+    private val controller = StorageController(service, meterRegistry)
 
     @Test
     fun `getUploadUrl should return presign payload with canonical url`() {

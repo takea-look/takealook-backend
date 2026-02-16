@@ -14,8 +14,10 @@ dependencies {
     implementation(projects.feature.push)
 
     implementation(libs.spring.boot.starter.data.redis.reactive)
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.sentry.spring.boot.starter)
 }
-
 tasks.withType<Test> {
     useJUnitPlatform()
 }

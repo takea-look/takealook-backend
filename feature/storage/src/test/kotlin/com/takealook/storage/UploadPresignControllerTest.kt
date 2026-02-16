@@ -1,5 +1,6 @@
 package com.takealook.storage
 
+import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -8,7 +9,8 @@ import org.junit.jupiter.api.Test
 class UploadPresignControllerTest {
 
     private val storageService = mockk<StorageService>()
-    private val controller = UploadPresignController(storageService)
+    private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
+    private val controller = UploadPresignController(storageService, meterRegistry)
 
     @Test
     fun `presign image upload should build key and return presign payload`() {

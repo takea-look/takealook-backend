@@ -12,9 +12,12 @@ bouncycastle = "1.78.1"
 [libraries]
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 spring-boot-starter-data-redis-reactive = { module = "org.springframework.boot:spring-boot-starter-data-redis-reactive" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+micrometer-core = { module = "io.micrometer:micrometer-core" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 spring-data-r2dbc = { module = "org.springframework.data:spring-data-r2dbc" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql" }
@@ -39,6 +42,9 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version = "2.2.2" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 reactor-test = { module = "io.projectreactor:reactor-test" }
+
+# Observability
+sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-starter-jakarta", version = "8.32.0" }
 
 # AWS
 aws-s3-core = { module = "software.amazon.awssdk:s3", version.ref = "aws"}

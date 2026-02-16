@@ -1,21 +1,36 @@
-# 로깅/모니터링 최소 셋업(초안)
+# 로깅/모니터링 기본 셋업
 
 ## 목표
-- 운영 장애 시 최소한의 탐지(에러 로그)와 추적이 가능할 것
+- 장애 징후를 운영 중에 빠르게 파악할 수 있도록 로그/메트릭/에러 리포트의 최소 축을 마련
+- 핵심 비즈니스 흐름(인증, 채팅, 업로드)에서 동작 성과를 메트릭으로 추적
 
-## 로깅
-- 기본 정책: **표준 출력(JSON은 추후)**
-- 중요 포인트(이미 로그 존재):
-  - 인증 실패/예외(GlobalExceptionHandler)
-  - WebSocket handshake 실패(ticket/roomId 누락, origin 불일치)
-  - 업로드 key/size 정책 위반(IllegalArgumentException)
+## Structured Logging
+- 요청마다 `X-Request-Id`를 부여/전파하고, 로그 패턴에 다음 키를 포함:
+  - `requestId`
+  - `user` (인증 사용자 식별자)
+- 로그 예시
+  - `2026-02-17T09:00:00.123+09:00 INFO [main] [rid=abc-123] [user=google_1] ...`
 
-## 모니터링(제안)
-- 1차: infra 로그 수집 + 알림
-- 2차: Spring Actuator 도입 후
-  - `/actuator/health`, `/actuator/metrics` 노출(내부망/인증 필수)
+## 장애 추적(에러 리포팅)
+- Sentry DSN이 있는 환경에서만 에러 리포팅 활성화
+- 로컬 환경은 `SENTRY_DSN` 미설정 시 리포팅 비활성으로 노이즈를 줄임
 
-## 체크리스트
-- [ ] error log rate 알림
-- [ ] WS 연결 실패율(Policy violation/Bad data) 추적
-- [ ] presigned url 발급 실패율 추적
+## 메트릭
+- Actuator + Prometheus를 통한 노출
+- 주요 커스텀 메트릭:
+  - `takealook_auth_requests_total`
+  - `takealook_chat_messages_total`
+  - `takealook_chat_ws_delivered_total`
+  - `takealook_upload_presign_requests_total`
+  - `takealook_upload_url_requests_total`
+  - `takealook_ws_connections_total`
+  - `takealook_ws_rate_limited_total`
+
+## 보기
+- `/actuator/health`
+- `/actuator/metrics`
+- `/actuator/prometheus`
+
+## 운영 가이드
+- 공개 노출은 방지하고 내부망/필터 뒤에서 제공
+- 로그는 표준 출력으로 수집되며, 운영 로그 어그리게이터(예: CloudWatch, Datadog 등)와 연동 권장
