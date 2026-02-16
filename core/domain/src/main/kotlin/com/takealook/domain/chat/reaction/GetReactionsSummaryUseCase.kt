@@ -1,13 +1,10 @@
 package com.takealook.domain.chat.reaction
 
-import com.takealook.data.chat.reaction.ChatReactionsR2dbcRepository
-
 class GetReactionsSummaryUseCase(
-    private val repository: ChatReactionsR2dbcRepository,
+    private val repository: ChatReactionsRepository,
 ) {
-    suspend operator fun invoke(messageId: Long) =
-        repository.countByMessageIdGrouped(messageId)
-            .map { row -> ReactionSummaryItem(row.reaction, row.cnt) }
+    suspend operator fun invoke(messageId: Long): List<ReactionSummaryItem> =
+        repository.getReactionsSummary(messageId)
 }
 
 data class ReactionSummaryItem(
