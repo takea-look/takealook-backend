@@ -2,6 +2,8 @@ name: Deploy
 
 on:
   push:
+    branches:
+      - main
     tags:
       - '*.*.*'
 
@@ -21,6 +23,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Prepare image tags
+        id: image
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          DEPLOY_TAG="main"
+
+          # Always keep rolling tags for main branch builds
+          IMAGE_TAGS="tklcat/takealook-backend:main\ntklcat/takealook-backend:sha-${SHORT_SHA}"
+
+          # If this is a git tag push, also publish the semantic-release tag and deploy it.
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            IMAGE_TAGS="${IMAGE_TAGS}\ntklcat/takealook-backend:${GITHUB_REF_NAME}"
+            DEPLOY_TAG="${GITHUB_REF_NAME}"
+          fi
+
+          {
+            echo "tags<<EOF"
+            echo "$IMAGE_TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "deploy_tag=${DEPLOY_TAG}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -28,8 +53,7 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: |
-            tklcat/takealook-backend:${{ github.ref_name }}
-            tklcat/takealook-backend:latest
+            ${{ steps.image.outputs.tags }}
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
@@ -38,23 +62,24 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo docker pull tklcat/takealook-backend:${{ github.ref_name }}
-            
+            IMAGE_TAG="${{ steps.image.outputs.deploy_tag }}"
+            sudo docker pull tklcat/takealook-backend:${IMAGE_TAG}
+
             # Ensure Redis is running
             sudo docker inspect redis > /dev/null 2>&1 || \
               sudo docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:7-alpine
-            
+
             # Create cert directory and files
             sudo mkdir -p /app/cert
             echo "${{ secrets.TOSS_CERT_PUBLIC }}" | sudo tee /app/cert/public.crt > /dev/null
             echo "${{ secrets.TOSS_KEY_PRIVATE }}" | sudo tee /app/cert/private.key > /dev/null
             sudo chmod 600 /app/cert/private.key
             sudo chown 1000:1000 /app/cert/private.key || true
-            
+
             # Stop and remove old app container
             sudo docker stop app || true
             sudo docker rm app || true
-            
+
             # Run new app container with Redis link
             sudo docker run -d --name app -p 8080:8080 \
               --link redis:redis \
@@ -73,4 +98,4 @@ jobs:
               -e TOSS_API_KEY_PATH=/app/cert/private.key \
               -e REDIS_HOST=redis \
               -e REDIS_PORT=6379 \
-              tklcat/takealook-backend:${{ github.ref_name }}
+              tklcat/takealook-backend:${IMAGE_TAG}
