@@ -238,6 +238,7 @@ class ChatHandler(
     private suspend fun broadcastSystemMessage(roomId: Long, userId: Long, type: MessageType) {
         val profile = getUserProfileByIdUseCase(userId) ?: return
         val systemMessage = UserChatMessage(
+            messageId = 0L,
             roomId = roomId,
             sender = profile,
             type = type,

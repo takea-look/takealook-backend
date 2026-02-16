@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "사용자 채팅 메시지 정보")
 data class UserChatMessage(
+    @Schema(description = "메시지 ID", example = "123")
+    val messageId: Long,
     @Schema(description = "채팅방 ID", example = "1")
     val roomId: Long,
     @Schema(description = "발신자 정보")
@@ -36,6 +38,7 @@ fun ChatMessage.toUserChatMessage(
     profile: UserProfile,
     replyTo: ReplyMessageSummary? = null,
 ): UserChatMessage = UserChatMessage(
+    messageId = id ?: 0L,
     roomId = roomId,
     sender = profile,
     type = MessageType.CHAT,
