@@ -10,4 +10,12 @@ interface UserProfileR2dbcRepository : CoroutineCrudRepository<UserProfileEntity
         VALUES (:id, :username)
     """)
     suspend fun insert(id: Long, username: String)
+
+    @Query("""
+        SELECT *
+        FROM user_profiles
+        WHERE nickname = :nickname
+        LIMIT 1
+    """)
+    suspend fun findByNickname(nickname: String): UserProfileEntity?
 }

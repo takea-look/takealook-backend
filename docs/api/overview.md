@@ -24,7 +24,7 @@
 
 | Method | Path | Auth | Request | Response | Note |
 |---|---|---|---|---|---|
-| `PATCH` | `/user/profile/me` | ✅ | `{ "nickname"?, "imageUrl"? }` | `UserProfile` | 닉네임은 최초 1회만 변경 가능 |
+| `PATCH` | `/user/profile/me` | ✅ | `{ "nickname"?, "imageUrl"? }` | `UserProfile` | 닉네임은 최초 1회만 변경 가능. 닉네임 길이 2~16, 금칙어 필터, 중복 불가 (`400`/`409`) |
 | `GET` | `/user/profile/me` | ✅ | 없음 | `UserProfile` | 현재 로그인 사용자 프로필 |
 | `GET` | `/user/profile?userId={id}` | ❌ | Query: `userId` | `UserProfile` | 공개 프로필 조회 |
 

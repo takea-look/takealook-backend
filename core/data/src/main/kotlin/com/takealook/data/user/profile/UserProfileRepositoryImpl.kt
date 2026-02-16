@@ -22,4 +22,8 @@ class UserProfileRepositoryImpl(
     override suspend fun findByUserId(userId: Long): UserProfile? {
         return repository.findById(userId)?.toProfile()
     }
+
+    override suspend fun findByNickname(nickname: String): UserProfile? {
+        return repository.findByNickname(nickname)?.toProfile()
+    }
 }

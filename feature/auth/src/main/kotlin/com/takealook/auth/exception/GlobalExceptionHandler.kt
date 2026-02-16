@@ -3,6 +3,7 @@ package com.takealook.auth.exception
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.domain.exceptions.InvalidReplyToMessageException
 import com.takealook.domain.exceptions.ProfileNotFoundException
+import com.takealook.domain.exceptions.ProfileNicknameConflictException
 import com.takealook.domain.exceptions.ProfileUpdateNotAllowedException
 import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.domain.exceptions.UserNotFoundException
@@ -61,6 +62,18 @@ class GlobalExceptionHandler {
             status = status.value(),
             reason = "PROFILE_UPDATE_NOT_ALLOWED",
             message = ex.message ?: "Profile update not allowed"
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
+    @ExceptionHandler(ProfileNicknameConflictException::class)
+    fun handleProfileNicknameConflictException(ex: ProfileNicknameConflictException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.CONFLICT
+        log.warn("ProfileNicknameConflictException", ex)
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            reason = "PROFILE_NICKNAME_CONFLICT",
+            message = ex.message ?: "Nickname already exists"
         )
         return ResponseEntity.status(status).body(errorResponse)
     }
