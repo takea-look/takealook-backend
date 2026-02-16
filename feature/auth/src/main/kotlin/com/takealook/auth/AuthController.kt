@@ -60,7 +60,7 @@ class AuthController(
         return "${'$'}endpoint:${'$'}ip:${'$'}device"
     }
 
-    private fun rateLimitOrNull(identity: String, endpoint: String): ResponseEntity<LoginResponse>? {
+    private fun <T> rateLimitOrNull(identity: String, endpoint: String): ResponseEntity<T>? {
         if (!authRateLimiter.canProceed(identity)) {
             val retryAfterMs = authRateLimiter.retryAfterMillis(identity)
             val retryAfterSeconds = (retryAfterMs / 1000) + 1
@@ -68,7 +68,7 @@ class AuthController(
             meterRegistry.counter("takealook_abuse_rate_limited_total", "scope", "auth", "endpoint", endpoint).increment()
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", retryAfterSeconds.toString())
-                .build()
+                .build<T>()
         }
         return null
     }
