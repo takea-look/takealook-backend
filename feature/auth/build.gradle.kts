@@ -17,6 +17,8 @@ dependencies {
     runtimeOnly(libs.jjwt.jackson)
     implementation(libs.nimbus.jose.jwt)
 
+    implementation(libs.micrometer.core)
+
     // Toss API dependencies
     implementation(libs.okhttp)
     implementation(libs.bouncycastle)

@@ -12,6 +12,7 @@ import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
 import com.takealook.model.UserProfile
+import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -44,6 +45,7 @@ class ChatHandlerTest {
     private lateinit var removeReactionUseCase: RemoveReactionUseCase
     private lateinit var chatBroadcaster: ChatBroadcaster
     private lateinit var jwtTokenProvider: com.takealook.auth.component.JwtTokenProvider
+    private lateinit var meterRegistry: MeterRegistry
 
     @BeforeEach
     fun setUp() {
@@ -56,6 +58,7 @@ class ChatHandlerTest {
         removeReactionUseCase = mockk(relaxed = true)
         chatBroadcaster = mockk(relaxed = true)
         jwtTokenProvider = mockk()
+        meterRegistry = mockk(relaxed = true)
 
         chatHandler = ChatHandler(
             objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule()),
@@ -68,6 +71,7 @@ class ChatHandlerTest {
             wsTicketService = wsTicketService,
             jwtTokenProvider = jwtTokenProvider,
             chatBroadcaster = chatBroadcaster,
+            meterRegistry = meterRegistry,
             allowedOriginsConfig = "https://takealook.app,http://localhost:3000",
             wsMaxMessagesPerMinute = 60,
             wsRateWindowSeconds = 60,

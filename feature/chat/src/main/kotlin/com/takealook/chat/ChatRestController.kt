@@ -16,6 +16,7 @@ import com.takealook.model.toUserChatMessage
 import io.jsonwebtoken.Claims
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -43,8 +44,10 @@ class ChatRestController(
     private val getChatUsersByRoomIdUseCase: GetChatUsersByRoomIdUseCase,
     private val chatBroadcaster: ChatBroadcaster,
     private val objectMapper: ObjectMapper,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger(ChatRestController::class.java)
+
 
     @Operation(summary = "채팅방 목록 조회", description = "사용자가 참여 중인 채팅방 목록을 조회합니다.")
     @GetMapping("/rooms")
@@ -90,40 +93,59 @@ class ChatRestController(
         @PathVariable roomId: Long,
         @RequestBody body: SendMessageRequest,
     ): ResponseEntity<UserChatMessage> {
-        val username = extractUsername(principal)
+        return try {
+            val username = extractUsername(principal)
 
-        val user = getUserByNameUseCase(username)
-            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")
+            val user = getUserByNameUseCase(username)
+                ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")
 
-        val senderId = user.id ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid user")
+            val senderId = user.id ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid user")
 
-        val roomUsers = getChatUsersByRoomIdUseCase(roomId)
-        val isMember = roomUsers.any { it.userId == senderId }
-        if (!isMember) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a room member")
+            val roomUsers = getChatUsersByRoomIdUseCase(roomId)
+            val isMember = roomUsers.any { it.userId == senderId }
+            if (!isMember) {
+                throw ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a room member")
+            }
+
+            val message = ChatMessage(
+                roomId = roomId,
+                senderId = senderId,
+                imageUrl = body.imageUrl,
+                replyToId = body.replyToId,
+            )
+
+            val profile = getUserProfileByIdUseCase(senderId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found")
+
+            val saved = saveMessageUseCase(message)
+            val userChatMessage = saved.toUserChatMessage(profile)
+            val payload = objectMapper.writeValueAsString(userChatMessage)
+
+            runCatching {
+                chatBroadcaster.broadcastToRoom(roomId, payload)
+            }.onFailure { error ->
+                logger.warn("Broadcast failed after save message, room=$roomId user=$senderId", error)
+            }
+
+            meterRegistry.counter(
+                "takealook_chat_messages_total",
+                "scope",
+                "rest",
+                "outcome",
+                "success"
+            ).increment()
+
+            ResponseEntity.ok(userChatMessage)
+        } catch (ex: Exception) {
+            meterRegistry.counter(
+                "takealook_chat_messages_total",
+                "scope",
+                "rest",
+                "outcome",
+                "error"
+            ).increment()
+            throw ex
         }
-
-        val message = ChatMessage(
-            roomId = roomId,
-            senderId = senderId,
-            imageUrl = body.imageUrl,
-            replyToId = body.replyToId,
-        )
-
-        val profile = getUserProfileByIdUseCase(senderId)
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found")
-
-        val saved = saveMessageUseCase(message)
-        val userChatMessage = saved.toUserChatMessage(profile)
-        val payload = objectMapper.writeValueAsString(userChatMessage)
-
-        runCatching {
-            chatBroadcaster.broadcastToRoom(roomId, payload)
-        }.onFailure { error ->
-            logger.warn("Broadcast failed after save message, room=$roomId user=$senderId", error)
-        }
-
-        return ResponseEntity.ok(userChatMessage)
     }
 
     @Operation(summary = "채팅 메시지 조회", description = "특정 채팅방의 메시지 내역을 조회합니다.")

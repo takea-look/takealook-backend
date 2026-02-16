@@ -10,6 +10,7 @@ import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.GoogleTokenInfo
 import com.takealook.model.auth.RefreshTokenRequest
+import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -24,12 +25,14 @@ class AuthControllerTest {
     private val saveUserUseCase = mockk<SaveUserUseCase>(relaxed = true)
     private val googleAuthService = mockk<GoogleAuthService>()
     private val jwtTokenProvider = mockk<JwtTokenProvider>()
+    private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = AuthController(
         getUserByNameUseCase,
         saveUserUseCase,
         jwtTokenProvider,
-        googleAuthService
+        googleAuthService,
+        meterRegistry
     )
 
     @Test

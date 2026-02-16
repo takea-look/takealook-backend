@@ -22,7 +22,9 @@ import com.takealook.model.toUserChatMessage
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Controller
@@ -43,6 +45,7 @@ class ChatHandler(
     private val wsTicketService: WsTicketService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val chatBroadcaster: ChatBroadcaster,
+    private val meterRegistry: MeterRegistry,
     @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
     private val allowedOriginsConfig: String,
     @Value("\${ws.rate-limit.max-messages-per-minute:60}")
@@ -61,6 +64,7 @@ class ChatHandler(
     override fun handle(session: WebSocketSession): Mono<Void?> = mono {
         val origin = session.handshakeInfo.headers.origin
         if (origin != null && origin !in allowedOrigins) {
+            meterRegistry.counter("takealook_ws_connections_total", "outcome", "origin_blocked").increment()
             logger.warn("Rejected connection from unauthorized origin: $origin")
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
@@ -68,29 +72,40 @@ class ChatHandler(
         val params = parseQueryParams(session.handshakeInfo.uri?.query)
         val roomId = params["roomId"]?.toLongOrNull()
         if (roomId == null) {
+            meterRegistry.counter("takealook_ws_connections_total", "outcome", "invalid_room").increment()
             logger.warn("Missing roomId in WebSocket handshake")
             return@mono session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
         }
 
         val authResult = authenticateSession(session.handshakeInfo.headers, params)
         val userId = authResult.getOrElse { reason ->
+            meterRegistry.counter("takealook_ws_connections_total", "outcome", "unauthorized").increment()
             logger.warn("WebSocket unauthorized: $reason")
             return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
         }
 
         val userProfile = getUserProfileByIdUseCase(userId) ?: run {
+            MDC.remove("userId")
+            MDC.remove("requestId")
             logger.error("User not found: $userId")
             return@mono session.close(CloseStatus.BAD_DATA).awaitSingleOrNull()
         }
 
+        MDC.put("userId", userId.toString())
+        MDC.put("requestId", session.handshakeInfo.headers.getFirst("X-Request-Id") ?: session.id)
+
         val isRoomMember = getChatUsersByRoomIdUseCase(roomId).any { it.userId == userId }
         if (!isRoomMember) {
-            logger.warn("User $userId is not a member of room $roomId")
+            meterRegistry.counter("takealook_ws_connections_total", "outcome", "forbidden").increment()
+            logger.warn("User $userId is not a room member of room $roomId")
+            MDC.remove("userId")
+            MDC.remove("requestId")
             return@mono session.close(CloseStatus.NOT_ACCEPTABLE).awaitSingleOrNull()
         }
 
         val isFirstSession = chatBroadcaster.attachSession(userId, session)
 
+        meterRegistry.counter("takealook_ws_connections_total", "outcome", "success").increment()
         logger.info("WebSocket session established for user $userId, Room: $roomId, First: $isFirstSession")
 
         if (isFirstSession) {
@@ -101,30 +116,69 @@ class ChatHandler(
             .map { it.payloadAsText }
             .flatMap { rawMessage ->
                 mono {
-                    if (!rateLimiter.allow(userId)) {
-                        logger.warn("Rate limit exceeded for user $userId. Closing connection.")
-                        session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
-                        return@mono null
-                    }
+                    try {
+                        meterRegistry.counter(
+                            "takealook_chat_messages_total",
+                            "scope",
+                            "ws",
+                            "type",
+                            detectIncomingType(rawMessage).name.lowercase(),
+                            "outcome",
+                            "attempt"
+                        ).increment()
 
-                    val type = detectIncomingType(rawMessage)
-                    if (type == MessageType.REACTION) {
-                        val command = objectMapper.readValue<ReactionCommand>(rawMessage)
-                        handleReactionCommand(command, roomId, userId)
-                        return@mono null
-                    }
+                        if (!rateLimiter.allow(userId)) {
+                            meterRegistry.counter("takealook_ws_rate_limited_total", "user", userId.toString()).increment()
+                            logger.warn("Rate limit exceeded for user $userId. Closing connection.")
+                            session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
+                            return@mono null
+                        }
 
-                    val chatMessage = objectMapper.readValue<ChatMessage>(rawMessage)
-                    if (chatMessage.roomId != roomId) {
-                        logger.warn("Ignoring message for invalid room ${chatMessage.roomId}, expected $roomId")
-                        return@mono null
-                    }
+                        val type = detectIncomingType(rawMessage)
+                        when (type) {
+                            MessageType.REACTION -> {
+                                val command = objectMapper.readValue<ReactionCommand>(rawMessage)
+                                handleReactionCommand(command, roomId, userId)
+                            }
+                            MessageType.JOIN,
+                            MessageType.LEAVE,
+                            MessageType.CHAT -> {
+                                val chatMessage = objectMapper.readValue<ChatMessage>(rawMessage)
+                                if (chatMessage.roomId != roomId) {
+                                    logger.warn("Ignoring message for invalid room ${chatMessage.roomId}, expected $roomId")
+                                    return@mono null
+                                }
 
-                    val normalizedMessage = chatMessage.copy(senderId = userId, roomId = roomId)
-                    val savedMessage = saveMessageUseCase(normalizedMessage)
-                    val userChatMessage = savedMessage.toUserChatMessage(userProfile)
-                    val messageJson = objectMapper.writeValueAsString(userChatMessage)
-                    chatBroadcaster.broadcastToRoom(roomId, messageJson)
+                                val normalizedMessage = chatMessage.copy(senderId = userId, roomId = roomId)
+                                val savedMessage = saveMessageUseCase(normalizedMessage)
+                                val userChatMessage = savedMessage.toUserChatMessage(userProfile)
+                                val messageJson = objectMapper.writeValueAsString(userChatMessage)
+                                chatBroadcaster.broadcastToRoom(roomId, messageJson)
+                            }
+                        }
+
+                        meterRegistry.counter(
+                            "takealook_chat_messages_total",
+                            "scope",
+                            "ws",
+                            "type",
+                            type.name.lowercase(),
+                            "outcome",
+                            "success"
+                        ).increment()
+                    } catch (ex: Exception) {
+                        meterRegistry.counter(
+                            "takealook_chat_messages_total",
+                            "scope",
+                            "ws",
+                            "type",
+                            "error",
+                            "outcome",
+                            "error"
+                        ).increment()
+                        logger.error("Incoming stream error for user $userId: ${ex.message}")
+                        null
+                    }
                 }
             }
             .doOnError { e -> logger.error("Incoming stream error for user $userId: ${e.message}") }
@@ -132,6 +186,9 @@ class ChatHandler(
 
         incoming
             .doFinally { signalType ->
+                MDC.remove("userId")
+                MDC.remove("requestId")
+                meterRegistry.counter("takealook_ws_connections_total", "outcome", "closed").increment()
                 val isLastSession = chatBroadcaster.detachSession(userId, session)
                 logger.info("Session closed for user $userId, Last: $isLastSession, Signal: $signalType")
                 if (isLastSession) {
@@ -139,6 +196,9 @@ class ChatHandler(
                         broadcastSystemMessage(roomId, userId, MessageType.LEAVE)
                     }.subscribe()
                 }
+            }
+            .doOnError {
+                meterRegistry.counter("takealook_ws_messages_error_total", "scope", "ws").increment()
             }
             .awaitSingleOrNull()
     }
