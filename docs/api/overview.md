@@ -11,13 +11,15 @@
 
 ## 인증 API (`/auth`)
 
+### MVP 지원 Provider: Google OAuth only
+
 | Method | Path | Auth | Request | Response | Note |
 |---|---|---|---|---|---|
 | `POST` | `/auth/signin` | ❌ | - | `ErrorResponse` | `410 GONE` (deprecated) |
 | `POST` | `/auth/signup` | ❌ | - | `ErrorResponse` | `410 GONE` (deprecated) |
 | `POST` | `/auth/google/signin` | ❌ | `GoogleLoginRequest` (`idToken`) | `LoginResponse` (`accessToken`, `refreshToken`) | Google OAuth 로그인 |
-| `POST` | `/auth/apple/signin` | ❌ | `GoogleLoginRequest` 형태 | `501` | Apple 로그인 미지원(계획) |
-| `POST` | `/auth/kakao/signin` | ❌ | `GoogleLoginRequest` 형태 | `501` | Kakao 로그인 미지원(계획) |
+| `POST` | `/auth/apple/signin` | ❌ | `GoogleLoginRequest` 형태 | `ErrorResponse` | Apple 미지원(501) |
+| `POST` | `/auth/kakao/signin` | ❌ | `GoogleLoginRequest` 형태 | `ErrorResponse` | Kakao 미지원(501) |
 | `POST` | `/auth/refresh` | ❌ | `RefreshTokenRequest` (`refreshToken`) | `LoginResponse` (`accessToken`) | refresh 토큰 재발급 |
 
 ## 사용자 API (`/user`)
