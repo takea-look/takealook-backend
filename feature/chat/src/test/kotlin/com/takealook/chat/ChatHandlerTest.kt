@@ -13,6 +13,7 @@ import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
 import com.takealook.model.UserProfile
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -269,5 +270,39 @@ class ChatHandlerTest {
             .verifyComplete()
 
         verify(exactly = 0) { session.close(any()) }
+    }
+
+    @Test
+    fun `handle should authorize using token query when ticket is blank`() = runTest {
+        val token = "jwt-token-456"
+        val session = createMockSession(
+            uri = URI.create("ws://localhost/chat?roomId=1&ticket=&token=$token")
+        )
+
+        every { jwtTokenProvider.isTokenValid(token) } returns true
+        every {
+            jwtTokenProvider.getAuthentication(token)
+        } returns UsernamePasswordAuthenticationToken("token-user-2", token)
+
+        coEvery { getUserByNameUseCase("token-user-2") } returns com.takealook.model.User(id = 11L, username = "token-user-2", password = "pw")
+        coEvery { getUserProfileByIdUseCase(11L) } returns UserProfile(
+            id = 11L,
+            username = "token-user-2",
+            nickname = "Blank Ticket User",
+            image = null,
+            updatedAt = LocalDateTime.now(),
+        )
+        coEvery { getChatUsersByRoomIdUseCase(1L) } returns listOf(com.takealook.model.ChatUser(userId = 11L, roomId = 1L, joinedAt = 0L))
+        every { session.receive() } returns Flux.empty()
+        every { chatBroadcaster.attachSession(11L, session) } returns false
+        every { chatBroadcaster.detachSession(11L, session) } returns false
+
+        val result = chatHandler.handle(session)
+
+        StepVerifier.create(result)
+            .verifyComplete()
+
+        verify(exactly = 0) { session.close(any()) }
+        coVerify(exactly = 0) { wsTicketService.validateAndConsumeTicket("") }
     }
 }
