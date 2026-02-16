@@ -12,6 +12,8 @@
   - Header: `accessToken: <JWT>` (레거시)
 - WebSocket 핸드셰이크 시 **query parameter로 `roomId`는 필수** 입니다.
 - 서버는 `Origin` 헤더를 `ws.allowed-origins` 설정으로 검증합니다.
+- SSE는 1차 스코프에서 미도입(실시간 양방향 리액션/브로드캐스트 반영성상 WS 채택).
+  - 정합 규격/전송 정책은 [`realtime-transport.md`](./realtime-transport.md) 기준으로 같이 적용합니다.
 
 ---
 
@@ -102,6 +104,16 @@ wss://api.takealook.app/chat?roomId=1&accessToken={jwt}
 }
 ```
 
+### `ReactionCommand`
+```json
+{
+  "roomId": 1,
+  "messageId": 123,
+  "reaction": "LIKE",
+  "action": "add"
+}
+```
+
 필드 설명:
 - `id`: 클라이언트에서는 보통 `null` (서버 저장 시 사용)
 - `roomId`: 대상 채팅방 ID
@@ -136,12 +148,15 @@ wss://api.takealook.app/chat?roomId=1&accessToken={jwt}
 
 - `type`은 `CHAT|JOIN|LEAVE` 중 하나입니다.
 - `JOIN/LEAVE` 이벤트의 경우, `imageUrl`은 `null`로 브로드캐스트됩니다.
+- 리액션은 별도 `UserChatReaction` 메시지로 전달됩니다.
 
 ---
 
-## 6) 재연결 가이드
+## 6) 재연결/정렬/백필 전략
 
-- WebSocket이 끊기면 **다시 `POST /chat/ticket`** 으로 새 티켓 발급 후 재연결하세요.
+- 소켓이 끊기면 **다시 `POST /chat/ticket`** 으로 새 티켓 발급 후 재연결하세요.
 - JWT 인증 모드라면 `accessToken`/`Authorization` 토큰 갱신 후 재연결하세요.
 - 모바일/브라우저에서는 1초~2초 지연 후 **지수 백오프(1, 2, 4, 8초)** 형태로 재시도 권장.
-- 네트워크가 불안정할 땐 재연결 실패 로그로 `roomId`와 `close reason`을 같이 기록하세요.
+- 순서 보정을 위해 마지막 수신 `messageId`를 기억하고 재접속 후
+  `GET /chat/rooms/{roomId}/messages?beforeMessageId={lastMessageId}&limit=50`
+  또는 `before` 파라미터로 누락 메시지를 재조회하세요.

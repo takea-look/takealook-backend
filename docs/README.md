@@ -10,6 +10,7 @@
 - [채팅 이미지 업로드 계약](./api/upload-api-contract.md)
 - [Chat REST Controller 설계(초안)](./api/chat-rest.md)
 - [WebSocket 채팅 연결 가이드](./api/websocket-chat.md)
+- [실시간 전송(WS) 계약](./api/realtime-transport.md)
 
 ## Storage
 - [이미지 서빙 도메인 & 캐시 정책(초안)](./storage/image-serving.md)

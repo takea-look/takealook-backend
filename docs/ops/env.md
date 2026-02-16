@@ -1,6 +1,6 @@
 # 운영/배포 환경변수 정리
 
-> 신규 개발자가 로컬/스테이징을 바로 띄울 수 있도록 **필수/선택 환경변수**를 정리합니다.
+> 신규 개발자가 로컬/스테이밍을 바로 띄울 수 있도록 **필수/선택 환경변수**를 정리합니다.
 
 ## 필수(로컬 개발 최소)
 
@@ -27,6 +27,8 @@
 ### WebSocket
 - `WS_TICKET_TTL` (default: `30` seconds)
 - `WS_ALLOWED_ORIGINS` (default: `http://localhost:5173`)
+- `WS_MAX_MESSAGES_PER_MINUTE` (default: `60`)
+- `WS_RATE_LIMIT_WINDOW_SECONDS` (default: `60`)
 
 ## 선택(스토리지 업로드 기능 사용 시)
 

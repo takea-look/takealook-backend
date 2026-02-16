@@ -68,7 +68,9 @@ class ChatHandlerTest {
             wsTicketService = wsTicketService,
             jwtTokenProvider = jwtTokenProvider,
             chatBroadcaster = chatBroadcaster,
-            allowedOriginsConfig = "https://takealook.app,http://localhost:3000"
+            allowedOriginsConfig = "https://takealook.app,http://localhost:3000",
+            wsMaxMessagesPerMinute = 60,
+            wsRateWindowSeconds = 60,
         )
 
         coEvery { getChatUsersByRoomIdUseCase(1L) } returns listOf(com.takealook.model.ChatUser(userId = 10L, roomId = 1L, joinedAt = 0L))
