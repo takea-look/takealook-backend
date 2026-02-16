@@ -61,3 +61,11 @@
 - `SENTRY_TRACES_SAMPLE_RATE` (default: `0.0`)
 - `SENTRY_SEND_PII` (default: `false`)
 - 요청 ID: `X-Request-Id` (미입력 시 서버가 생성)
+
+## Abuse Protection
+- `ABUSE_AUTH_MAX_REQUESTS_PER_MINUTE` (default: `30`)
+- `ABUSE_AUTH_WINDOW_SECONDS` (default: `60`)
+- `ABUSE_CHAT_SEND_MAX_REQUESTS_PER_MINUTE` (default: `40`)
+- `ABUSE_CHAT_SEND_WINDOW_SECONDS` (default: `60`)
+- `ABUSE_UPLOAD_MAX_REQUESTS_PER_MINUTE` (default: `20`)
+- `ABUSE_UPLOAD_WINDOW_SECONDS` (default: `60`)

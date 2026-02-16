@@ -6,6 +6,7 @@ import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
+import com.takealook.domain.limiter.AbuseRateLimiter
 import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.LoginResponse
 import com.takealook.model.auth.RefreshTokenRequest
@@ -14,6 +15,9 @@ import com.takealook.model.User
 import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -31,10 +35,42 @@ class AuthController(
     private val jwtTokenProvider: JwtTokenProvider,
     private val googleAuthService: GoogleAuthService,
     private val meterRegistry: MeterRegistry,
+    @Value("\${abuse.auth.max-requests-per-minute:30}") private val maxAuthRequestsPerMinute: Int,
+    @Value("\${abuse.auth.window-seconds:60}") private val authWindowSeconds: Long,
 ) {
+
+    private val logger = LoggerFactory.getLogger(AuthController::class.java)
+    private val authRateLimiter = AbuseRateLimiter(maxAuthRequestsPerMinute, authWindowSeconds * 1000)
 
     private fun recordAuthEvent(provider: String, outcome: String) {
         meterRegistry.counter("takealook_auth_requests_total", "provider", provider, "outcome", outcome).increment()
+    }
+
+    private fun buildIdentity(
+        xForwardedFor: String?,
+        xRealIp: String?,
+        xDeviceId: String?,
+        endpoint: String,
+    ): String {
+        val ip = xForwardedFor?.split(",")?.firstOrNull()?.trim()
+            ?: xRealIp?.trim()
+            ?: "unknown-ip"
+        val device = xDeviceId?.trim()?.takeIf { it.isNotBlank() }
+            ?: "unknown-device"
+        return "${'$'}endpoint:${'$'}ip:${'$'}device"
+    }
+
+    private fun rateLimitOrNull(identity: String, endpoint: String): ResponseEntity<LoginResponse>? {
+        if (!authRateLimiter.canProceed(identity)) {
+            val retryAfterMs = authRateLimiter.retryAfterMillis(identity)
+            val retryAfterSeconds = (retryAfterMs / 1000) + 1
+            logger.warn("Rate limit exceeded. identity=$identity endpoint=$endpoint retryAfter=${'$'}retryAfterSeconds s")
+            meterRegistry.counter("takealook_abuse_rate_limited_total", "scope", "auth", "endpoint", endpoint).increment()
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", retryAfterSeconds.toString())
+                .build()
+        }
+        return null
     }
 
     @Operation(
@@ -43,7 +79,14 @@ class AuthController(
         deprecated = true,
     )
     @PostMapping("/signin")
-    suspend fun deprecatedSignIn(@RequestBody body: Map<String, String>): Nothing {
+    suspend fun deprecatedSignIn(
+        @RequestBody body: Map<String, String>,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<Void> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "signin")
+        rateLimitOrNull(identity, "signin")?.let { return it }
         recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
             "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
@@ -56,7 +99,14 @@ class AuthController(
         deprecated = true,
     )
     @PostMapping("/signup")
-    suspend fun deprecatedSignUp(@RequestBody body: Map<String, String>): Nothing {
+    suspend fun deprecatedSignUp(
+        @RequestBody body: Map<String, String>,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<Void> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "signup")
+        rateLimitOrNull(identity, "signup")?.let { return it }
         recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
             "username/password signup is deprecated. Use SNS onboarding flow managed by provider."
@@ -69,7 +119,15 @@ class AuthController(
         security = []
     )
     @PostMapping("/google/signin")
-    suspend fun loginWithGoogle(@RequestBody request: GoogleLoginRequest): LoginResponse {
+    suspend fun loginWithGoogle(
+        @RequestBody request: GoogleLoginRequest,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<LoginResponse> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "google")
+        rateLimitOrNull(identity, "google")?.let { return it }
+
         return try {
             val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
             val sub = tokenInfo.sub ?: throw RuntimeException("Invalid google token")
@@ -87,7 +145,7 @@ class AuthController(
             val accessToken = jwtTokenProvider.createToken(user.username)
             val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
             recordAuthEvent("google", "success")
-            LoginResponse(accessToken, refreshToken)
+            ResponseEntity.ok(LoginResponse(accessToken, refreshToken))
         } catch (ex: Exception) {
             recordAuthEvent("google", "error")
             throw ex
@@ -100,7 +158,14 @@ class AuthController(
         security = []
     )
     @PostMapping("/apple/signin")
-    suspend fun loginWithApple(@RequestBody request: Map<String, String>): LoginResponse {
+    suspend fun loginWithApple(
+        @RequestBody request: Map<String, String>,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<LoginResponse> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "apple")
+        rateLimitOrNull(identity, "apple")?.let { return it }
         recordAuthEvent("apple", "unsupported")
         throw UnsupportedSocialProviderException(
             "Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
@@ -113,7 +178,14 @@ class AuthController(
         security = []
     )
     @PostMapping("/kakao/signin")
-    suspend fun loginWithKakao(@RequestBody request: Map<String, String>): LoginResponse {
+    suspend fun loginWithKakao(
+        @RequestBody request: Map<String, String>,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<LoginResponse> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "kakao")
+        rateLimitOrNull(identity, "kakao")?.let { return it }
         recordAuthEvent("kakao", "unsupported")
         throw UnsupportedSocialProviderException(
             "Kakao provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
@@ -126,11 +198,19 @@ class AuthController(
         security = []
     )
     @PostMapping("/refresh")
-    suspend fun refresh(@RequestBody request: RefreshTokenRequest): LoginResponse {
+    suspend fun refresh(
+        @RequestBody request: RefreshTokenRequest,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<LoginResponse> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "refresh")
+        rateLimitOrNull(identity, "refresh")?.let { return it }
+
         return try {
             val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
             recordAuthEvent("refresh", "success")
-            LoginResponse(newAccessToken)
+            ResponseEntity.ok(LoginResponse(newAccessToken))
         } catch (ex: Exception) {
             recordAuthEvent("refresh", "error")
             throw ex
@@ -142,7 +222,14 @@ class AuthController(
         description = "임시 디버그용 API로 JWT를 파싱한 username 정보를 반환합니다."
     )
     @GetMapping("/me")
-    suspend fun getSession(@RequestHeader("Authorization") token: String): ResponseEntity<Map<String, String>> {
+    suspend fun getSession(
+        @RequestHeader("Authorization") token: String,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<Map<String, String>> {
+        val identity = buildIdentity(forwardedFor, realIp, deviceId, "session")
+        rateLimitOrNull(identity, "session")?.let { return it }
         return try {
             val accessToken = token.removePrefix("Bearer ").trim()
             if (!jwtTokenProvider.isTokenValid(accessToken)) {
