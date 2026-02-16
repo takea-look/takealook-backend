@@ -7,6 +7,7 @@
 - [API 계약 오버뷰 (Auth/Chat/Storage)](./api/overview.md)
 - [REST API 계약(초안)](./api/rest.md)
 - [채팅 메시지 계약(이미지-only)](./api/chat-message-contract.md)
+- [채팅 이미지 업로드 계약](./api/upload-api-contract.md)
 - [Chat REST Controller 설계(초안)](./api/chat-rest.md)
 - [WebSocket 채팅 연결 가이드](./api/websocket-chat.md)
 

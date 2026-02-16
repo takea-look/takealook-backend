@@ -19,6 +19,7 @@ class StorageService(
     ): String {
         validateKey(key)
         validateSize(sizeBytes)
+        validateContentTypeWithKey(key, contentType)
 
         val putObjectRequest = PutObjectRequest.builder()
             .bucket(props.bucket)
@@ -45,9 +46,23 @@ class StorageService(
         return "${props.allowedKeyPrefix}$roomId/$timestamp.$ext"
     }
 
+    fun canonicalImageUrl(key: String): String {
+        return "${props.publicBaseUrl.trimEnd('/')}/$key"
+    }
+
     fun validateChatUploadKeyAndSize(key: String, sizeBytes: Long?) {
         validateKey(key)
         validateSize(sizeBytes)
+    }
+
+    fun validateContentTypeWithKey(key: String, contentType: String?) {
+        if (contentType.isNullOrBlank()) return
+        val normalized = contentType.lowercase().trim().substringBefore(';').trim()
+        val ext = extensionForMime(normalized)
+        val keyExt = key.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+        if (keyExt != ext) {
+            throw IllegalArgumentException("contentType and key extension mismatch")
+        }
     }
 
     private fun validateRoomId(roomId: Long) {
@@ -101,4 +116,34 @@ class StorageService(
             throw IllegalArgumentException("sizeBytes exceeds maxUploadBytes(${props.maxUploadBytes})")
         }
     }
+
+    fun uploadResponse(
+        key: String,
+        sizeBytes: Long? = null,
+        contentType: String? = null,
+        headers: Map<String, String> = emptyMap(),
+    ): UploadResponse {
+        val finalHeaders = headers.toMutableMap()
+        if (!contentType.isNullOrBlank()) {
+            finalHeaders["Content-Type"] = contentType
+        }
+
+        return UploadResponse(
+            url = generateUploadUrl(key, sizeBytes, contentType),
+            key = key,
+            canonicalUrl = canonicalImageUrl(key),
+            headers = finalHeaders,
+            maxUploadBytes = props.maxUploadBytes,
+            expiresInSeconds = props.presignTtlMinutes * 60,
+        )
+    }
+
+    data class UploadResponse(
+        val url: String,
+        val key: String,
+        val canonicalUrl: String,
+        val headers: Map<String, String>,
+        val maxUploadBytes: Long,
+        val expiresInSeconds: Long,
+    )
 }
