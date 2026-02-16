@@ -81,7 +81,7 @@ class ChatHandlerTest {
         sessionId: String = "test-session-id"
     ): WebSocketSession {
         val httpHeaders = headers ?: run {
-            val h = mockk<HttpHeaders>()
+            val h = mockk<HttpHeaders>(relaxed = true)
             every { h.origin } returns origin
             h
         }
