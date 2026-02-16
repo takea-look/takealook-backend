@@ -41,6 +41,7 @@
 - max upload size: `cloud.r2.maxUploadBytes` (default 10MB)
 - allowed extensions: `cloud.r2.allowedExtensions` (default png/jpg/jpeg/webp)
 - allowed key prefix: `cloud.r2.allowedKeyPrefix` (default `chat/`)
+- public image base URL: `cloud.r2.public-base-url` (default `https://img.takealook.my`)
 
 ## 선택(Toss 인증)
 - `TOSS_DECRYPTION_KEY`

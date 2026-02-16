@@ -13,12 +13,6 @@ data class PresignRequest(
     val sizeBytes: Long? = null,
 )
 
-data class PresignResponse(
-    val url: String,
-    val key: String,
-    val headers: Map<String, String>,
-)
-
 @Tag(name = "Storage", description = "스토리지 관리 API")
 @RestController
 class UploadPresignController(
@@ -27,19 +21,15 @@ class UploadPresignController(
 
     @Operation(summary = "이미지 업로드 presigned URL 생성", description = "채팅용 이미지 업로드에 사용할 presigned PUT URL을 발급합니다.")
     @PostMapping("/uploads/presign")
-    fun presignImageUpload(@RequestBody body: PresignRequest): ResponseEntity<PresignResponse> {
+    fun presignImageUpload(@RequestBody body: PresignRequest): ResponseEntity<StorageService.UploadResponse> {
         val key = storageService.generateChatMessageUploadKey(body.roomId, body.contentType)
-        val url = storageService.generateUploadUrl(
+        val response = storageService.uploadResponse(
             key = key,
             sizeBytes = body.sizeBytes,
             contentType = body.contentType,
+            headers = mapOf("Content-Type" to body.contentType),
         )
-        return ResponseEntity.ok(
-            PresignResponse(
-                url = url,
-                key = key,
-                headers = mapOf("Content-Type" to body.contentType),
-            )
-        )
+
+        return ResponseEntity.ok(response)
     }
 }

@@ -2,6 +2,7 @@ package com.takealook.storage
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -14,10 +15,12 @@ class StorageController(
     private val service: StorageService
 ) {
 
-    @Operation(summary = "업로드 URL 생성", description = "파일 업로드를 위한 Presigned URL을 생성합니다.")
+    @Operation(summary = "Presigned URL 생성", description = "키 기반으로 업로드용 Presigned URL을 생성합니다.")
     @GetMapping("/upload")
     fun getUploadUrl(
         @RequestParam key: String,
         @RequestParam(required = false) sizeBytes: Long?,
-    ) = mapOf("url" to service.generateUploadUrl(key, sizeBytes))
+        @RequestParam(required = false) contentType: String?,
+    ): ResponseEntity<StorageService.UploadResponse> =
+        ResponseEntity.ok(service.uploadResponse(key = key, sizeBytes = sizeBytes, contentType = contentType))
 }

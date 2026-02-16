@@ -17,20 +17,27 @@ class UploadPresignControllerTest {
             contentType = "image/png",
             sizeBytes = 1024L,
         )
+        val expectedPayload = StorageService.UploadResponse(
+            url = "https://upload.example.com/upload",
+            key = "chat/12/1700000000000.png",
+            canonicalUrl = "https://img.takealook.my/chat/12/1700000000000.png",
+            headers = mapOf("Content-Type" to "image/png"),
+            maxUploadBytes = 10L * 1024 * 1024,
+            expiresInSeconds = 600,
+        )
         every { storageService.generateChatMessageUploadKey(12L, "image/png") } returns "chat/12/1700000000000.png"
         every {
-            storageService.generateUploadUrl(
+            storageService.uploadResponse(
                 key = "chat/12/1700000000000.png",
                 sizeBytes = 1024L,
-                contentType = "image/png"
+                contentType = "image/png",
+                headers = mapOf("Content-Type" to "image/png"),
             )
-        } returns "https://upload.example.com/upload"
+        } returns expectedPayload
 
         val response = controller.presignImageUpload(request)
 
-        assertEquals("https://upload.example.com/upload", response.body?.url)
-        assertEquals("chat/12/1700000000000.png", response.body?.key)
-        assertEquals(mapOf("Content-Type" to "image/png"), response.body?.headers)
+        assertEquals(expectedPayload, response.body)
     }
 
     @Test

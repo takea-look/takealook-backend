@@ -27,6 +27,12 @@ class StorageServiceTest {
     }
 
     @Test
+    fun `canonical image url should be public base url + key`() {
+        val key = "chat/10/1700000000000.png"
+        assertEquals("https://img.takealook.my/chat/10/1700000000000.png", service.canonicalImageUrl(key))
+    }
+
+    @Test
     fun `mimetype should resolve to extension`() {
         assertEquals("png", service.extensionForMime("image/png"))
         assertEquals("jpeg", service.extensionForMime("image/jpeg; charset=utf-8"))
@@ -50,6 +56,14 @@ class StorageServiceTest {
     fun `unsupported mimetype should fail`() {
         assertThrows(IllegalArgumentException::class.java) {
             service.extensionForMime("text/plain")
+        }
+    }
+
+    @Test
+    fun `content type should match key extension`() {
+        service.validateContentTypeWithKey("chat/1/1700000000000.png", "image/png")
+        assertThrows(IllegalArgumentException::class.java) {
+            service.validateContentTypeWithKey("chat/1/1700000000000.png", "image/webp")
         }
     }
 }
