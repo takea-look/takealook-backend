@@ -7,6 +7,7 @@ import com.takealook.domain.chat.room.CreateChatRoomUseCase
 import com.takealook.domain.chat.room.GetChatRoomUseCase
 import com.takealook.domain.chat.room.GetChatRoomsUseCase
 import com.takealook.domain.chat.users.GetChatUsersByRoomIdUseCase
+import com.takealook.domain.limiter.AbuseRateLimiter
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.profile.GetUserProfileByIdUseCase
 import com.takealook.model.ChatMessage
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -45,9 +48,54 @@ class ChatRestController(
     private val chatBroadcaster: ChatBroadcaster,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
+    @Value("\${abuse.chat-send.max-requests-per-minute:40}") private val maxChatSendRequestsPerMinute: Int,
+    @Value("\${abuse.chat-send.window-seconds:60}") private val chatSendWindowSeconds: Long,
 ) {
     private val logger = LoggerFactory.getLogger(ChatRestController::class.java)
+    private val chatSendLimiter = AbuseRateLimiter(maxChatSendRequestsPerMinute, chatSendWindowSeconds * 1000)
 
+    private data class RateLimitIdentity(
+        val roomId: Long?,
+        val identity: String,
+    )
+
+    private fun resolveClientIp(
+        forwardedFor: String?,
+        realIp: String?,
+    ): String =
+        forwardedFor?.split(',')?.firstOrNull()?.trim()
+            ?: realIp?.trim()
+            ?: "unknown-ip"
+
+    private fun resolveIdentity(
+        forwardedFor: String?,
+        realIp: String?,
+        deviceId: String?,
+        userId: Long?,
+        roomId: Long,
+    ): RateLimitIdentity {
+        val ip = resolveClientIp(forwardedFor, realIp)
+        val device = deviceId?.trim()?.takeIf { it.isNotBlank() } ?: "unknown-device"
+        return if (userId != null) {
+            RateLimitIdentity(roomId, "user:$userId:room:$roomId")
+        } else {
+            RateLimitIdentity(roomId, "ip:$ip:device:$device:room:$roomId")
+        }
+    }
+
+    private fun isRateLimited(identity: RateLimitIdentity): ResponseEntity<UserChatMessage>? {
+        val key = "chat-send:${identity.identity}"
+        if (!chatSendLimiter.canProceed(key)) {
+            val retryAfterMs = chatSendLimiter.retryAfterMillis(key)
+            val retryAfterSeconds = (retryAfterMs / 1000) + 1
+            logger.warn("Rate limit exceeded for chat send. key=$key roomId=${identity.roomId} retryAfter=${retryAfterSeconds}s")
+            meterRegistry.counter("takealook_abuse_rate_limited_total", "scope", "chat", "endpoint", "send").increment()
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", retryAfterSeconds.toString())
+                .build()
+        }
+        return null
+    }
 
     @Operation(summary = "채팅방 목록 조회", description = "사용자가 참여 중인 채팅방 목록을 조회합니다.")
     @GetMapping("/rooms")
@@ -92,14 +140,18 @@ class ChatRestController(
         @AuthenticationPrincipal principal: Any?,
         @PathVariable roomId: Long,
         @RequestBody body: SendMessageRequest,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<UserChatMessage> {
         return try {
             val username = extractUsername(principal)
-
             val user = getUserByNameUseCase(username)
                 ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")
 
             val senderId = user.id ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid user")
+            val rateLimitIdentity = resolveIdentity(forwardedFor, realIp, deviceId, senderId, roomId)
+            isRateLimited(rateLimitIdentity)?.let { return it }
 
             val roomUsers = getChatUsersByRoomIdUseCase(roomId)
             val isMember = roomUsers.any { it.userId == senderId }
@@ -136,7 +188,7 @@ class ChatRestController(
             ).increment()
 
             ResponseEntity.ok(userChatMessage)
-        } catch (ex: Exception) {
+        } catch (ex: ResponseStatusException) {
             meterRegistry.counter(
                 "takealook_chat_messages_total",
                 "scope",

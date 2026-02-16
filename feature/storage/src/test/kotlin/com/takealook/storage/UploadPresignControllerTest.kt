@@ -10,7 +10,7 @@ class UploadPresignControllerTest {
 
     private val storageService = mockk<StorageService>()
     private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
-    private val controller = UploadPresignController(storageService, meterRegistry)
+    private val controller = UploadPresignController(storageService, meterRegistry, 120, 60)
 
     @Test
     fun `presign image upload should build key and return presign payload`() {

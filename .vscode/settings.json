@@ -1,0 +1,7 @@
+{
+  "kotlin.languageServer.enabled": true,
+  "editor.formatOnSave": true,
+  "[kotlin]": {
+    "editor.defaultFormatter": "fwcd.kotlin"
+  }
+}

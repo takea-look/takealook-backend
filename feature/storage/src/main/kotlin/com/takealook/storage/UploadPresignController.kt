@@ -1,11 +1,16 @@
 package com.takealook.storage
 
+import com.takealook.domain.limiter.AbuseRateLimiter
 import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 
 data class PresignRequest(
@@ -19,15 +24,52 @@ data class PresignRequest(
 class UploadPresignController(
     private val storageService: StorageService,
     private val meterRegistry: MeterRegistry,
+    @Value("\${abuse.upload.max-requests-per-minute:20}") private val maxUploadPresignPerMinute: Int,
+    @Value("\${abuse.upload.window-seconds:60}") private val uploadWindowSeconds: Long,
 ) {
+    private val logger = LoggerFactory.getLogger(UploadPresignController::class.java)
+    private val limiter = AbuseRateLimiter(maxUploadPresignPerMinute, uploadWindowSeconds * 1000)
+
+    private fun resolveIdentity(
+        userId: String?,
+        forwardedFor: String?,
+        realIp: String?,
+        deviceId: String?,
+    ): String {
+        return if (!userId.isNullOrBlank()) {
+            "user:${'$'}userId"
+        } else {
+            val ip = forwardedFor?.split(',')?.firstOrNull()?.trim() ?: (realIp?.trim() ?: "unknown-ip")
+            val device = deviceId?.trim()?.takeIf { it.isNotBlank() } ?: "unknown-device"
+            "ip:${'$'}ip:device:${'$'}device"
+        }
+    }
 
     @Operation(summary = "이미지 업로드 presigned URL 생성", description = "채팅용 이미지 업로드에 사용할 presigned PUT URL을 발급합니다.")
     @PostMapping("/uploads/presign")
-    fun presignImageUpload(@RequestBody body: PresignRequest): ResponseEntity<StorageService.UploadResponse> {
+    fun presignImageUpload(
+        @RequestBody body: PresignRequest,
+        @RequestHeader("X-User-Id", required = false) userId: String?,
+        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
+        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
+        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
+    ): ResponseEntity<StorageService.UploadResponse> {
+        val identity = resolveIdentity(userId, forwardedFor, realIp, deviceId)
+        val key = "storage-presign:${'$'}identity"
+        if (!limiter.canProceed(key)) {
+            val retryAfterMs = limiter.retryAfterMillis(key)
+            val retryAfterSeconds = (retryAfterMs / 1000) + 1
+            logger.warn("Rate limit exceeded for upload presign. identity=${'$'}identity retryAfter=${'$'}retryAfterSeconds")
+            meterRegistry.counter("takealook_abuse_rate_limited_total", "scope", "upload", "endpoint", "presign").increment()
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", retryAfterSeconds.toString())
+                .build()
+        }
+
         meterRegistry.counter("takealook_upload_presign_requests_total", "outcome", "request").increment()
-        val key = storageService.generateChatMessageUploadKey(body.roomId, body.contentType)
+        val keyPath = storageService.generateChatMessageUploadKey(body.roomId, body.contentType)
         val response = storageService.uploadResponse(
-            key = key,
+            key = keyPath,
             sizeBytes = body.sizeBytes,
             contentType = body.contentType,
             headers = mapOf("Content-Type" to body.contentType),

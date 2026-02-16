@@ -54,6 +54,8 @@ class ChatRestControllerTest {
         chatBroadcaster,
         objectMapper,
         meterRegistry,
+        120,
+        60,
     )
 
     @Test

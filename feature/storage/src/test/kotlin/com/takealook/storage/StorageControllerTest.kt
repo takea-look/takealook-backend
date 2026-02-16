@@ -11,7 +11,7 @@ class StorageControllerTest {
 
     private val service = mockk<StorageService>()
     private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
-    private val controller = StorageController(service, meterRegistry)
+    private val controller = StorageController(service, meterRegistry, 120, 60)
 
     @Test
     fun `getUploadUrl should return presign payload with canonical url`() {
