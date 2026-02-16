@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
+import kotlinx.coroutines.reactor.awaitSingle
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
@@ -48,7 +49,7 @@ class ChatBroadcaster(
                     }
                     .onErrorResume { Mono.empty() }
                     .then()
-                    .awaitSingleOrNull()
+                    .awaitSingle()
             }
         }
     }

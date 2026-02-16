@@ -1,5 +1,6 @@
 package com.takealook.auth.component
 
+import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
@@ -33,6 +34,18 @@ class JwtTokenProvider(
             .signWith(key)
             .compact()
     }
+
+    fun createRefreshToken(username: String): String {
+        return createToken(username)
+    }
+
+    fun refreshAccessToken(refreshToken: String): String {
+        val claims = parseClaims(refreshToken)
+        return createToken(claims.subject)
+    }
+
+    fun parseClaims(token: String): Claims = getParsedClaims(token).payload
+
     private fun getParsedClaims(token: String) = Jwts
         .parser()
         .verifyWith(key)
@@ -42,7 +55,7 @@ class JwtTokenProvider(
     fun getAuthentication(token: String): Authentication {
         val claims = getParsedClaims(token)
 
-        val username = claims.payload
+        val username = claims.payload.subject
         return UsernamePasswordAuthenticationToken(
             username,
             token,

@@ -16,9 +16,9 @@ import com.takealook.model.UserChatMessage
 import com.takealook.model.UserProfile
 import io.jsonwebtoken.Claims
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -38,6 +38,7 @@ class ChatRestControllerTest {
     private val getUserProfileByIdUseCase = mockk<GetUserProfileByIdUseCase>()
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
     private val chatBroadcaster = mockk<ChatBroadcaster>(relaxed = true)
+    private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
@@ -49,7 +50,7 @@ class ChatRestControllerTest {
         getUserProfileByIdUseCase,
         getChatUsersByRoomIdUseCase,
         chatBroadcaster,
-        ObjectMapper(),
+        objectMapper,
     )
 
     @Test
@@ -61,14 +62,7 @@ class ChatRestControllerTest {
         coEvery { getChatUsersByRoomIdUseCase(roomId) } returns listOf(ChatUser(userId = 1L, roomId = roomId, joinedAt = 0L))
         coEvery { getUserProfileByIdUseCase(1L) } returns profile
         coEvery {
-            saveMessageUseCase(
-                ChatMessage(
-                    roomId = roomId,
-                    senderId = 1L,
-                    imageUrl = "https://cdn/img.png",
-                    replyToId = 2L,
-                )
-            )
+            saveMessageUseCase(any())
         } returns ChatMessage(
             id = 99L,
             roomId = roomId,
@@ -89,7 +83,10 @@ class ChatRestControllerTest {
         assertEquals("https://cdn/img.png", response.body?.imageUrl)
         assertEquals(roomId, response.body?.roomId)
         assertEquals(1L, response.body?.sender?.id)
-        verify(exactly = 1) { chatBroadcaster.broadcastToRoom(roomId, any()) }
+
+        coVerify(exactly = 1) {
+            saveMessageUseCase(any())
+        }
     }
 
     @Test

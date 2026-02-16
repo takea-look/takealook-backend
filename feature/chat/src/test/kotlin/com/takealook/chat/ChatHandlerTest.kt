@@ -1,5 +1,6 @@
 package com.takealook.chat
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.takealook.chat.ticket.WsTicketData
 import com.takealook.chat.ticket.WsTicketService
@@ -56,7 +57,7 @@ class ChatHandlerTest {
         jwtTokenProvider = mockk()
 
         chatHandler = ChatHandler(
-            objectMapper = jacksonObjectMapper(),
+            objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule()),
             getChatUsersByRoomIdUseCase = getChatUsersByRoomIdUseCase,
             getUserByNameUseCase = getUserByNameUseCase,
             getUserProfileByIdUseCase = getUserProfileByIdUseCase,
@@ -259,7 +260,7 @@ class ChatHandlerTest {
             updatedAt = LocalDateTime.now(),
         )
         every { session.receive() } returns Flux.empty()
-        every { chatBroadcaster.attachSession(10L, session) } returns true
+        every { chatBroadcaster.attachSession(10L, session) } returns false
         every { chatBroadcaster.detachSession(10L, session) } returns false
 
         val result = chatHandler.handle(session)

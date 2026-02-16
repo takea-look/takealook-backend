@@ -19,6 +19,7 @@ import com.takealook.model.MessageType
 import com.takealook.model.UserChatMessage
 import com.takealook.model.UserChatReaction
 import com.takealook.model.toUserChatMessage
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
@@ -117,7 +118,7 @@ class ChatHandler(
             .doOnError { e -> logger.error("Incoming stream error for user $userId: ${e.message}") }
             .then()
 
-        Mono.when(incoming)
+        incoming
             .doFinally { signalType ->
                 val isLastSession = chatBroadcaster.detachSession(userId, session)
                 logger.info("Session closed for user $userId, Last: $isLastSession, Signal: $signalType")
@@ -130,7 +131,7 @@ class ChatHandler(
             .awaitSingleOrNull()
     }
 
-    private fun authenticateSession(headers: HttpHeaders, queryParams: Map<String, String>): Result<Long> {
+    private suspend fun authenticateSession(headers: HttpHeaders, queryParams: Map<String, String>): Result<Long> {
         val ticket = queryParams["ticket"]
         if (ticket != null) {
             val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
@@ -151,12 +152,9 @@ class ChatHandler(
         val principal = jwtTokenProvider.getAuthentication(token).principal
         val username = principal as? String ?: return Result.failure(IllegalArgumentException("Invalid token principal"))
         val user = getUserByNameUseCase(username) ?: return Result.failure(IllegalArgumentException("User not found"))
+        val userId = user.id ?: return Result.failure(IllegalArgumentException("User id missing"))
 
-        return if (user.id == null) {
-            Result.failure(IllegalArgumentException("User id missing"))
-        } else {
-            Result.success(user.id)
-        }
+        return Result.success(userId)
     }
 
     private fun extractToken(headers: HttpHeaders, queryParams: Map<String, String>): String? {

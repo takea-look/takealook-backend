@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.redis.reactive)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.jjwt.api)
+    implementation(libs.kotlinx.coroutines.reactor)
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.security.test)
