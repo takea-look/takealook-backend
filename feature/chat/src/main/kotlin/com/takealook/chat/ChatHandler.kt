@@ -132,7 +132,7 @@ class ChatHandler(
     }
 
     private suspend fun authenticateSession(headers: HttpHeaders, queryParams: Map<String, String>): Result<Long> {
-        val ticket = queryParams["ticket"]
+        val ticket = queryParams["ticket"]?.trim()?.takeIf { it.isNotBlank() }
         if (ticket != null) {
             val ticketData = wsTicketService.validateAndConsumeTicket(ticket)
             return if (ticketData == null) {
