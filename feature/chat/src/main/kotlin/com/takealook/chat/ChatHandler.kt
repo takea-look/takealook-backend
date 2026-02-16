@@ -45,8 +45,14 @@ class ChatHandler(
     private val chatBroadcaster: ChatBroadcaster,
     @Value("\${ws.allowed-origins:https://takealook.app,http://localhost:3000}")
     private val allowedOriginsConfig: String,
+    @Value("\${ws.rate-limit.max-messages-per-minute:60}")
+    private val wsMaxMessagesPerMinute: Int,
+    @Value("\${ws.rate-limit.window-seconds:60}")
+    private val wsRateWindowSeconds: Long,
 ) : WebSocketHandler {
     private val logger = LoggerFactory.getLogger(ChatHandler::class.java)
+
+    private val rateLimiter = ChatRateLimiter(wsMaxMessagesPerMinute, wsRateWindowSeconds * 1000)
 
     private val allowedOrigins: Set<String> by lazy {
         allowedOriginsConfig.split(",").map { it.trim() }.toSet()
@@ -95,6 +101,12 @@ class ChatHandler(
             .map { it.payloadAsText }
             .flatMap { rawMessage ->
                 mono {
+                    if (!rateLimiter.allow(userId)) {
+                        logger.warn("Rate limit exceeded for user $userId. Closing connection.")
+                        session.close(CloseStatus.POLICY_VIOLATION).awaitSingleOrNull()
+                        return@mono null
+                    }
+
                     val type = detectIncomingType(rawMessage)
                     if (type == MessageType.REACTION) {
                         val command = objectMapper.readValue<ReactionCommand>(rawMessage)

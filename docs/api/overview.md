@@ -56,13 +56,17 @@
 ## WebSocket
 
 - WS 엔드포인트: `ws(s)://{host}/chat?ticket={ticket}&roomId={roomId}`
-- 연결 전 `POST /chat/ticket` 호출로 ticket 획득 필수
+- 연결 전 `POST /chat/ticket` 호출로 ticket 획득 필수 (JWT 직접 인증도 지원)
 - Inbound 메시지:
   - `ChatMessage` JSON(이미지 메시지 기반)
   - 리액션은 `{ roomId, messageId, userId, reaction, action: add|remove }`
 - Outbound 메시지:
   - `UserChatMessage` (CHAT/JOIN/LEAVE)
   - `UserChatReaction`
+- 재연결 가이드:
+  - 마지막 `messageId` 기준으로 재접속 후 `/chat/rooms/{roomId}/messages?beforeMessageId=...` 백필 권장
+  - 지수 백오프 재시도
+- **전송 제한**: 사용자당 분당 상한 기본 60건 (`ws.rate-limit.*`)
 - **Typing/read receipts**: 현재 구현에서 별도 REST/WS event로 미제공 (MVP TODO)
 
 ## 에러 바디 형식(현재 예시)
