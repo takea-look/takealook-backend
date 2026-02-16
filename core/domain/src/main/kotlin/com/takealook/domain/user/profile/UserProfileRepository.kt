@@ -20,4 +20,9 @@ interface UserProfileRepository {
      * 유저 프로필 정보 조회
      */
     suspend fun findByUserId(userId: Long): UserProfile?
+
+    /**
+     * 닉네임으로 유저 프로필 조회
+     */
+    suspend fun findByNickname(nickname: String): UserProfile?
 }
