@@ -9,7 +9,7 @@ class UpdateMyProfileUseCase(
     private val userProfileRepository: UserProfileRepository,
 ) {
     suspend operator fun invoke(username: String, nickname: String?, imageUrl: String?): UserProfile {
-        val user = userRepository.findByUsername(username)
+        val user = userRepository.findByUserName(username)
             ?: throw ProfileNotFoundException("user not found")
 
         val existing = userProfileRepository.findByUserId(user.id!!)
