@@ -1,24 +1,61 @@
-# 인증 플로우 & 엔드포인트 정리(초안)
+# 인증 플로우 & 엔드포인트 정리
 
-> SNS OAuth-first 인증으로 통일하고, 비밀번호 기반 `/auth/signin`, `/auth/signup`은 **점진적으로 중단**합니다.
+## 목표 (MVP)
+- **SNS OAuth-first** 고정
+- 현재 클라이언트가 실제로 사용할 경로는 `POST /auth/google/signin` 하나로 통일
+- 기존 비밀번호 기반 로그인/회원가입은 단계적으로 중단 (Backward compatibility만 유지)
 
-## 현재 지원되는 인증 흐름 (MVP)
+## 지원 Provider 정의
 
-- `POST /auth/google/signin` (request: `{ idToken }`) → 내부 JWT access + refresh 발급
-- `POST /auth/refresh` (request: `{ refreshToken }`) → access token 재발급
-- `POST /auth/apple/signin` / `POST /auth/kakao/signin`는 **현재 미지원(미구현)**. 엔드포인트는 존재하나 `501` 반환.
+### 실제 지원
+- `google`
 
-## 비밀번호 기반 인증
+### 계획 중 (실패 응답)
+- `apple` (501)
+- `kakao` (501)
 
-- `POST /auth/signin`
-- `POST /auth/signup`
+`/auth/google/signin`은 `GoogleLoginRequest`를 받아 구글 ID token을 검증하고 내부 JWT(`accessToken`, `refreshToken`)를 발급합니다.
 
-현재 두 API는 `410 GONE` + 공통 ErrorResponse(`AUTH_FLOW_DEPRECATED`)로 동작하며,
-구현 의도상 새 클라이언트에서는 호출하면 안 됩니다.
+## 공통 스키마
+
+### Request / `POST /auth/google/signin`
+
+```json
+{ "idToken": "<google-id-token>" }
+```
+
+### Response 성공
+
+```json
+{
+  "accessToken": "<jwt access>",
+  "refreshToken": "<jwt refresh>"
+}
+```
+
+### Response 실패(미지원 Provider)
+
+```json
+{
+  "status": 501,
+  "reason": "UNSUPPORTED_SOCIAL_PROVIDER",
+  "message": "Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
+}
+```
+
+## API 정합성 체크리스트
+
+- 비밀번호 경로: `POST /auth/signin`, `POST /auth/signup`
+  - 구현상 `410 GONE` (AUTH_FLOW_DEPRECATED)로 동작
+  - FE 신규 연동에서 호출하면 안 됨
+- OAuth 경로: `POST /auth/google/signin`, `POST /auth/apple/signin`, `POST /auth/kakao/signin`
+  - google만 유효(200), apple/kakao는 501
+- 토큰 갱신: `POST /auth/refresh`
+  - `refreshToken`을 받아 새로운 `accessToken` 발급
 
 ## 에러 포맷
 
-모든 인증 처리 실패는 `ErrorResponse`로 래핑합니다.
+모든 인증 처리 실패는 공통 `ErrorResponse` 반환
 
 ```json
 {
@@ -28,7 +65,7 @@
 }
 ```
 
-
+지원 코드:
 - `AUTH_FLOW_DEPRECATED`: 과거 로그인/회원가입 API 사용 시(410)
 - `UNSUPPORTED_SOCIAL_PROVIDER`: Apple/Kakao 미지원 시(501)
-- `INVALID_CREDENTIALS`: 토큰 유효성/토큰 재발급 실패(401)
+- `INVALID_CREDENTIALS`: 토큰 유효성/재발급 실패(401)
