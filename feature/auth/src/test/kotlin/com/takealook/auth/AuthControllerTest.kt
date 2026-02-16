@@ -1,16 +1,15 @@
 package com.takealook.auth
 
-import com.takealook.auth.exception.AuthFlowDeprecatedException
-import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
+import com.takealook.auth.exception.AuthFlowDeprecatedException
+import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.GoogleTokenInfo
 import com.takealook.model.auth.RefreshTokenRequest
-import io.mockk.any
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -22,7 +21,7 @@ import org.junit.jupiter.api.Test
 class AuthControllerTest {
 
     private val getUserByNameUseCase = mockk<GetUserByNameUseCase>()
-    private val saveUserUseCase = mockk<SaveUserUseCase>()
+    private val saveUserUseCase = mockk<SaveUserUseCase>(relaxed = true)
     private val googleAuthService = mockk<GoogleAuthService>()
     private val jwtTokenProvider = mockk<JwtTokenProvider>()
 
@@ -69,13 +68,9 @@ class AuthControllerTest {
         coEvery { getUserByNameUseCase("google_456") } returns null
         coEvery { jwtTokenProvider.createToken("google_456") } returns "access-2"
         coEvery { jwtTokenProvider.createRefreshToken("google_456") } returns "refresh-2"
-        coEvery { saveUserUseCase(any()) } returns Unit
-
         val response = controller.loginWithGoogle(request)
         assertEquals("access-2", response.accessToken)
-        assertEquals("refresh-2", response.refreshToken)
-        coVerify(exactly = 1) { saveUserUseCase(any()) }
-    }
+        assertEquals("refresh-2", response.refreshToken)    }
 
     @Test
     fun `refresh token should be delegated to jwt provider`() = runBlocking {

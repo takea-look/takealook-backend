@@ -6,6 +6,9 @@ plugins {
 dependencies {
     implementation(projects.core.domain)
     implementation(libs.aws.s3.core)
+
+    testImplementation(libs.mockk)
+    testImplementation(libs.spring.boot.starter.test)
 }
 
 tasks.withType<Test> {

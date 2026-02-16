@@ -4,8 +4,13 @@
 
 ## 0) 전제
 
-- WebSocket 연결은 **티켓 기반(일회용)** 입니다.
-- WebSocket 핸드셰이크 시 **query parameter로 `ticket`, `roomId`가 필수** 입니다.
+- WebSocket 연결은 **티켓 기반(일회용)** 또는 **JWT 인증 토큰**으로 인증 가능합니다.
+- WebSocket 핸드셰이크 시 아래 중 하나의 인증 수단을 전달해야 합니다.
+  - Query: `ticket`
+  - Query: `token` 또는 `accessToken`
+  - Header: `Authorization: Bearer <JWT>`
+  - Header: `accessToken: <JWT>` (레거시)
+- WebSocket 핸드셰이크 시 **query parameter로 `roomId`는 필수** 입니다.
 - 서버는 `Origin` 헤더를 `ws.allowed-origins` 설정으로 검증합니다.
 
 ---
@@ -31,7 +36,7 @@
 
 ## 2) WebSocket 연결
 
-### URL
+### URL (권장)
 
 ```text
 ws(s)://{host}/chat?ticket={ticket}&roomId={roomId}
@@ -42,15 +47,29 @@ ws(s)://{host}/chat?ticket={ticket}&roomId={roomId}
 wss://api.takealook.app/chat?ticket=550e8400-e29b-41d4-a716-446655440000&roomId=1
 ```
 
+### URL (JWT fallback)
+
+```text
+ws(s)://{host}/chat?token={jwt}&roomId={roomId}
+```
+
+예시:
+```text
+wss://api.takealook.app/chat?roomId=1&accessToken={jwt}
+```
+
+헤더 방식도 동일하게 동작합니다.
+
 ### 연결 실패(close code)
 
 - `1002 (POLICY_VIOLATION)`
-  - `ticket`/`roomId` 누락
+  - `roomId` 누락
   - Origin 불일치(allowed origins 외)
 - `1003 (NOT_ACCEPTABLE)`
-  - 티켓 만료/무효
+  - 티켓 무효/만료
+  - JWT 토큰 미인증/만료/사용자 조회 실패
 - `1007 (BAD_DATA)`
-  - 티켓은 유효하나 사용자 프로필을 찾지 못함
+  - 사용자를 찾지 못함
 
 ---
 
@@ -120,7 +139,9 @@ wss://api.takealook.app/chat?ticket=550e8400-e29b-41d4-a716-446655440000&roomId=
 
 ---
 
-## 6) 클라이언트 구현 팁
+## 6) 재연결 가이드
 
-- 연결이 끊기면(또는 티켓 만료로 연결 실패하면) **다시 `POST /chat/ticket`으로 티켓을 발급**받고 재연결하세요.
-- `JOIN/LEAVE`는 사용자 세션 기준으로 동작하므로, 멀티탭 환경에서 이벤트 수가 기대와 다를 수 있습니다.
+- WebSocket이 끊기면 **다시 `POST /chat/ticket`** 으로 새 티켓 발급 후 재연결하세요.
+- JWT 인증 모드라면 `accessToken`/`Authorization` 토큰 갱신 후 재연결하세요.
+- 모바일/브라우저에서는 1초~2초 지연 후 **지수 백오프(1, 2, 4, 8초)** 형태로 재시도 권장.
+- 네트워크가 불안정할 땐 재연결 실패 로그로 `roomId`와 `close reason`을 같이 기록하세요.

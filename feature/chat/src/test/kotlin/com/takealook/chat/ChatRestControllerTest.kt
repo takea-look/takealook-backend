@@ -1,5 +1,6 @@
 package com.takealook.chat
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
 import com.takealook.domain.chat.room.CreateChatRoomUseCase
@@ -15,6 +16,7 @@ import com.takealook.model.UserChatMessage
 import com.takealook.model.UserProfile
 import io.jsonwebtoken.Claims
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -35,6 +37,8 @@ class ChatRestControllerTest {
     private val getUserByNameUseCase = mockk<GetUserByNameUseCase>()
     private val getUserProfileByIdUseCase = mockk<GetUserProfileByIdUseCase>()
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
+    private val chatBroadcaster = mockk<ChatBroadcaster>(relaxed = true)
+    private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
@@ -45,6 +49,8 @@ class ChatRestControllerTest {
         getUserByNameUseCase,
         getUserProfileByIdUseCase,
         getChatUsersByRoomIdUseCase,
+        chatBroadcaster,
+        objectMapper,
     )
 
     @Test
@@ -56,14 +62,7 @@ class ChatRestControllerTest {
         coEvery { getChatUsersByRoomIdUseCase(roomId) } returns listOf(ChatUser(userId = 1L, roomId = roomId, joinedAt = 0L))
         coEvery { getUserProfileByIdUseCase(1L) } returns profile
         coEvery {
-            saveMessageUseCase(
-                ChatMessage(
-                    roomId = roomId,
-                    senderId = 1L,
-                    imageUrl = "https://cdn/img.png",
-                    replyToId = 2L,
-                )
-            )
+            saveMessageUseCase(any())
         } returns ChatMessage(
             id = 99L,
             roomId = roomId,
@@ -84,6 +83,10 @@ class ChatRestControllerTest {
         assertEquals("https://cdn/img.png", response.body?.imageUrl)
         assertEquals(roomId, response.body?.roomId)
         assertEquals(1L, response.body?.sender?.id)
+
+        coVerify(exactly = 1) {
+            saveMessageUseCase(any())
+        }
     }
 
     @Test

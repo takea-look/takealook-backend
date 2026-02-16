@@ -16,11 +16,16 @@ dependencies {
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
     implementation(libs.nimbus.jose.jwt)
-    
+
     // Toss API dependencies
     implementation(libs.okhttp)
     implementation(libs.bouncycastle)
     implementation(libs.jackson.module.kotlin)
+
+    testImplementation(libs.mockk)
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 tasks.withType<Test> {
