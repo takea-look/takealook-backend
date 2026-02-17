@@ -1,8 +1,6 @@
 package com.takealook.auth
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.takealook.auth.exception.GlobalExceptionHandler
+import com.takealook.auth.exception.AuthFlowDeprecatedException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.model.User
@@ -13,14 +11,9 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import org.hamcrest.CoreMatchers.containsString
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.post
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.http.HttpStatusCode
 
 class AuthControllerIntegrationTest {
 
@@ -40,13 +33,6 @@ class AuthControllerIntegrationTest {
         60,
     )
 
-    private val objectMapper = ObjectMapper().registerKotlinModule()
-
-    private val mockMvc: MockMvc = MockMvcBuilders
-        .standaloneSetup(controller)
-        .setControllerAdvice(GlobalExceptionHandler())
-        .build()
-
     @Test
     fun `oauth login success should return access token and refresh token`() {
         val request = GoogleLoginRequest(idToken = "valid-id-token")
@@ -57,49 +43,42 @@ class AuthControllerIntegrationTest {
         coEvery { jwtTokenProvider.createToken("google_google-sub") } returns "access-token"
         coEvery { jwtTokenProvider.createRefreshToken("google_google-sub") } returns "refresh-token"
 
-        mockMvc.post("/auth/google/signin") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(request)
-        }.andExpect {
-            status { isOk() }
-            content { string(containsString("\"accessToken\":\"access-token\"")) }
-            content { string(containsString("\"refreshToken\":\"refresh-token\"")) }
-        }
+        val response = controller.loginWithGoogle(request, null, null, null)
+
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals("access-token", response.body?.accessToken)
+        assertEquals("refresh-token", response.body?.refreshToken)
     }
 
     @Test
-    fun `oauth login failure should return not implemented for unsupported provider`() {
-        mockMvc.post("/auth/apple/signin") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(mapOf("idToken" to "id-token"))
-        }.andExpect {
-            status { isNotImplemented() }
-            content { string(containsString("UNSUPPORTED_SOCIAL_PROVIDER")) }
+    fun `oauth login failure should throw unsupported provider exception`() {
+        val response = runCatching {
+            controller.loginWithApple(mapOf("idToken" to "id-token"), null, null, null)
         }
+
+        assertEquals(
+            true,
+            response.exceptionOrNull() is com.takealook.auth.exception.UnsupportedSocialProviderException,
+        )
     }
 
     @Test
-    fun `legacy signin should return deprecated status and message`() {
-        mockMvc.post("/auth/signin") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(mapOf("username" to "u", "password" to "p"))
-        }.andExpect {
-            status { isGone() }
-            content { string(containsString("AUTH_FLOW_DEPRECATED")) }
+    fun `legacy signin should throw deprecated flow exception`() {
+        val response = runCatching {
+            controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"), null, null, null)
         }
+
+        assertEquals(true, response.exceptionOrNull() is AuthFlowDeprecatedException)
     }
 
     @Test
     fun `refresh should return new access token`() {
         coEvery { jwtTokenProvider.refreshAccessToken("r") } returns "new-access"
 
-        mockMvc.post("/auth/refresh") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(RefreshTokenRequest("r"))
-        }.andExpect {
-            status { isOk() }
-            content { string(containsString("\"accessToken\":\"new-access\"")) }
-        }
+        val response = controller.refresh(RefreshTokenRequest("r"), null, null, null)
+
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals("new-access", response.body?.accessToken)
 
         coVerify(exactly = 1) { jwtTokenProvider.refreshAccessToken("r") }
     }

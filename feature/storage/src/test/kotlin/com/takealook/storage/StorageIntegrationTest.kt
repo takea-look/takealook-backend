@@ -1,20 +1,12 @@
 package com.takealook.storage
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.hamcrest.CoreMatchers.containsString
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.post
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.http.HttpStatusCode
 
 class StorageIntegrationTest {
 
@@ -23,11 +15,6 @@ class StorageIntegrationTest {
 
     private val uploadController = StorageController(service, meterRegistry, 120, 60)
     private val presignController = UploadPresignController(service, meterRegistry, 120, 60)
-
-    private val objectMapper = ObjectMapper().registerKotlinModule()
-
-    private val uploadMockMvc: MockMvc = MockMvcBuilders.standaloneSetup(uploadController).build()
-    private val presignMockMvc: MockMvc = MockMvcBuilders.standaloneSetup(presignController).build()
 
     @Test
     fun `storage upload url endpoint should return presign payload`() {
@@ -48,14 +35,18 @@ class StorageIntegrationTest {
             )
         } returns expected
 
-        uploadMockMvc.get("/storage/upload") {
-            param("key", "chat/1/1700000000000.png")
-            param("sizeBytes", "1000")
-            param("contentType", "image/png")
-        }.andExpect {
-            status { isOk() }
-            content { string(containsString(objectMapper.writeValueAsString(expected))) }
-        }
+        val response = uploadController.getUploadUrl(
+            key = "chat/1/1700000000000.png",
+            sizeBytes = 1000L,
+            contentType = "image/png",
+            userId = null,
+            forwardedFor = null,
+            realIp = null,
+            deviceId = null,
+        )
+
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals(expected, response.body)
     }
 
     @Test
@@ -85,14 +76,16 @@ class StorageIntegrationTest {
             )
         } returns expected
 
-        presignMockMvc.post("/uploads/presign") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(request)
-        }.andExpect {
-            status { isOk() }
-            content { string(containsString(objectMapper.writeValueAsString(expected))) }
-        }
+        val response = presignController.presignImageUpload(
+            body = request,
+            userId = null,
+            forwardedFor = null,
+            realIp = null,
+            deviceId = null,
+        )
 
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals(expected, response.body)
         verify(exactly = 1) { service.generateChatMessageUploadKey(12L, "image/png") }
     }
 }

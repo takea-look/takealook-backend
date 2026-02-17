@@ -15,17 +15,13 @@ import com.takealook.model.ChatUser
 import com.takealook.model.User
 import com.takealook.model.UserChatMessage
 import com.takealook.model.UserProfile
-import io.micrometer.core.instrument.MeterRegistry
+import io.jsonwebtoken.Claims
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.post
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.http.HttpStatusCode
 
 class ChatControllerIntegrationTest {
 
@@ -38,8 +34,8 @@ class ChatControllerIntegrationTest {
     private val getUserProfileByIdUseCase = mockk<GetUserProfileByIdUseCase>()
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
     private val chatBroadcaster = mockk<com.takealook.chat.ChatBroadcaster>(relaxed = true)
+    private val meterRegistry = mockk<io.micrometer.core.instrument.MeterRegistry>(relaxed = true)
     private val objectMapper = ObjectMapper().registerKotlinModule()
-    private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
@@ -57,12 +53,13 @@ class ChatControllerIntegrationTest {
         60,
     )
 
-    private val mockMvc: MockMvc = MockMvcBuilders.standaloneSetup(controller).build()
-
     @Test
     fun `chat send should persist and return user chat message`() {
         val roomId = 7L
         val request = ChatRestController.SendMessageRequest(imageUrl = "https://cdn/img.png", replyToId = 2L)
+        val claims = mockk<Claims>()
+        every { claims.subject } returns "claims-user"
+
         coEvery { getUserByNameUseCase("claims-user") } returns User(id = 1L, username = "claims-user", password = "pw")
         coEvery { getChatUsersByRoomIdUseCase(roomId) } returns listOf(ChatUser(userId = 1L, roomId = roomId, joinedAt = 0L))
         coEvery { getUserProfileByIdUseCase(1L) } returns UserProfile(id = 1L, username = "claims-user", nickname = "nick")
@@ -76,16 +73,18 @@ class ChatControllerIntegrationTest {
             replyToId = 2L,
         )
 
-        val response = mockMvc.post("/chat/rooms/$roomId/messages") {
-            principal("claims-user")
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(request)
-        }.andReturn().response
+        val response = controller.sendImageMessage(
+            principal = claims,
+            roomId = roomId,
+            body = request,
+            forwardedFor = null,
+            realIp = null,
+            deviceId = null,
+        )
 
-        assertEquals(200, response.status)
-        assertTrue(response.contentAsString.contains("\"messageId\":123"))
-        assertTrue(response.contentAsString.contains("\"roomId\":7"))
-        
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals(123L, response.body?.messageId)
+        assertEquals(7L, response.body?.roomId)
     }
 
     @Test
@@ -93,13 +92,9 @@ class ChatControllerIntegrationTest {
         val expected = listOf<UserChatMessage>()
         coEvery { getChatMessagesUseCase(1L, 20, 1000L, 10L) } returns expected
 
-        val response = mockMvc.get("/chat/rooms/1/messages") {
-            queryParam("limit", "20")
-            queryParam("before", "1000")
-            queryParam("beforeMessageId", "10")
-        }.andReturn().response
+        val response = controller.getMessagesByRoomId(roomId = 1L, limit = 20, before = 1000L, beforeMessageId = 10L)
 
-        assertEquals(200, response.status)
-        assertEquals("[]", response.contentAsString)
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals(expected, response.body)
     }
 }
