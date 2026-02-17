@@ -1,6 +1,7 @@
 package com.takealook.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.takealook.domain.chat.message.GetMessagesUseCase
 import com.takealook.domain.chat.message.SaveMessageUseCase
@@ -36,7 +37,7 @@ class ChatControllerIntegrationTest {
     private val getChatUsersByRoomIdUseCase = mockk<GetChatUsersByRoomIdUseCase>()
     private val chatBroadcaster = mockk<com.takealook.chat.ChatBroadcaster>(relaxed = true)
     private val meterRegistry = mockk<io.micrometer.core.instrument.MeterRegistry>(relaxed = true)
-    private val objectMapper = ObjectMapper().registerKotlinModule()
+    private val objectMapper = ObjectMapper().registerKotlinModule().registerModule(JavaTimeModule())
 
     private val controller = ChatRestController(
         getChatRoomsUseCase,
