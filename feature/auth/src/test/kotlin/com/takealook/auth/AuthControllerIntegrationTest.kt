@@ -13,11 +13,12 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.hamcrest.CoreMatchers.containsString
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 
@@ -56,54 +57,50 @@ class AuthControllerIntegrationTest {
         coEvery { jwtTokenProvider.createToken("google_google-sub") } returns "access-token"
         coEvery { jwtTokenProvider.createRefreshToken("google_google-sub") } returns "refresh-token"
 
-        val response = mockMvc.post("/auth/google/signin") {
+        mockMvc.post("/auth/google/signin") {
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
-            status().isOk
-        }.andReturn()
-
-        val body = response.response.contentAsString
-        assertTrue(body.contains("\"accessToken\":\"access-token\""))
-        assertTrue(body.contains("\"refreshToken\":\"refresh-token\""))
+            status { isOk() }
+            content { string(containsString("\"accessToken\":\"access-token\"")) }
+            content { string(containsString("\"refreshToken\":\"refresh-token\"")) }
+        }
     }
 
     @Test
     fun `oauth login failure should return not implemented for unsupported provider`() {
-        val response = mockMvc.post("/auth/apple/signin") {
+        mockMvc.post("/auth/apple/signin") {
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(mapOf("idToken" to "id-token"))
         }.andExpect {
-            status().isNotImplemented
-        }.andReturn()
-
-        assertTrue(response.response.contentAsString.contains("UNSUPPORTED_SOCIAL_PROVIDER"))
+            status { isNotImplemented() }
+            content { string(containsString("UNSUPPORTED_SOCIAL_PROVIDER")) }
+        }
     }
 
     @Test
     fun `legacy signin should return deprecated status and message`() {
-        val response = mockMvc.post("/auth/signin") {
+        mockMvc.post("/auth/signin") {
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(mapOf("username" to "u", "password" to "p"))
         }.andExpect {
-            status().isGone
-        }.andReturn()
-
-        assertTrue(response.response.contentAsString.contains("AUTH_FLOW_DEPRECATED"))
+            status { isGone() }
+            content { string(containsString("AUTH_FLOW_DEPRECATED")) }
+        }
     }
 
     @Test
     fun `refresh should return new access token`() {
         coEvery { jwtTokenProvider.refreshAccessToken("r") } returns "new-access"
 
-        val response = mockMvc.post("/auth/refresh") {
+        mockMvc.post("/auth/refresh") {
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(RefreshTokenRequest("r"))
         }.andExpect {
-            status().isOk
-        }.andReturn()
+            status { isOk() }
+            content { string(containsString("\"accessToken\":\"new-access\"")) }
+        }
 
-        assertTrue(response.response.contentAsString.contains("\"accessToken\":\"new-access\""))
         coVerify(exactly = 1) { jwtTokenProvider.refreshAccessToken("r") }
     }
 }
