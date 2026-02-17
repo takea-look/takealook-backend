@@ -92,6 +92,22 @@ docker-compose up -d
 2. 라벨/마일스톤 미지정 이슈는 `needs-spec` 또는 `blocked`로 분류해 TODO로 넘기지 않기
 3. 우선순위와 area가 명확해지면 다음 액션(개발/테스트/PR) 계획으로 바로 이어가기
 
+
+## Kotlin LSP setup
+
+이 저장소는 Kotlin LSP를 사용해서 코드 완성/경고/리팩터링 지원을 받습니다.
+
+- Kotlin LSP 프로젝트: https://github.com/Kotlin/kotlin-language-server
+
+```bash
+brew install openjdk
+brew install kotlin-language-server
+```
+
+VS Code에서 사용할 때:
+- 추천 확장: `fwcd.kotlin` (`.vscode/extensions.json`에서 자동 추천)
+- `kotlin-language-server` 바이너리를 위 명령으로 설치한 뒤 IDE 재시작
+
 ## Documentation
 
 - [WebSocket 티켓 인증 시스템](./docs/architecture/websocket-authentication.md)
