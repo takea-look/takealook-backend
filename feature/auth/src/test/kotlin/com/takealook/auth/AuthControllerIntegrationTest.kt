@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatusCode
@@ -43,7 +44,9 @@ class AuthControllerIntegrationTest {
         coEvery { jwtTokenProvider.createToken("google_google-sub") } returns "access-token"
         coEvery { jwtTokenProvider.createRefreshToken("google_google-sub") } returns "refresh-token"
 
-        val response = controller.loginWithGoogle(request, null, null, null)
+        val response = runBlocking {
+            controller.loginWithGoogle(request, null, null, null)
+        }
 
         assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
         assertEquals("access-token", response.body?.accessToken)
@@ -53,7 +56,9 @@ class AuthControllerIntegrationTest {
     @Test
     fun `oauth login failure should throw unsupported provider exception`() {
         val response = runCatching {
-            controller.loginWithApple(mapOf("idToken" to "id-token"), null, null, null)
+            runBlocking {
+                controller.loginWithApple(mapOf("idToken" to "id-token"), null, null, null)
+            }
         }
 
         assertEquals(
@@ -65,7 +70,9 @@ class AuthControllerIntegrationTest {
     @Test
     fun `legacy signin should throw deprecated flow exception`() {
         val response = runCatching {
-            controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"), null, null, null)
+            runBlocking {
+                controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"), null, null, null)
+            }
         }
 
         assertEquals(true, response.exceptionOrNull() is AuthFlowDeprecatedException)
@@ -75,7 +82,9 @@ class AuthControllerIntegrationTest {
     fun `refresh should return new access token`() {
         coEvery { jwtTokenProvider.refreshAccessToken("r") } returns "new-access"
 
-        val response = controller.refresh(RefreshTokenRequest("r"), null, null, null)
+        val response = runBlocking {
+            controller.refresh(RefreshTokenRequest("r"), null, null, null)
+        }
 
         assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
         assertEquals("new-access", response.body?.accessToken)
