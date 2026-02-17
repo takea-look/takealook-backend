@@ -41,7 +41,7 @@ class AuthControllerTest {
     fun `signin endpoint should be deprecated`() = runBlocking {
         val ex = assertThrows(AuthFlowDeprecatedException::class.java) {
             runBlocking {
-                controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"))
+                controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"), null, null, null, null)
             }
         }
         assertEquals("password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin", ex.message)
@@ -58,7 +58,7 @@ class AuthControllerTest {
         coEvery { jwtTokenProvider.createToken("google_123") } returns "access-1"
         coEvery { jwtTokenProvider.createRefreshToken("google_123") } returns "refresh-1"
 
-        val response = controller.loginWithGoogle(request)
+        val response = controller.loginWithGoogle(request, null, null, null, null)
         assertEquals("access-1", response.body?.accessToken)
         assertEquals("refresh-1", response.body?.refreshToken)
         coVerify(exactly = 1) { getUserByNameUseCase("google_123") }
@@ -73,14 +73,14 @@ class AuthControllerTest {
         coEvery { getUserByNameUseCase("google_456") } returns null
         coEvery { jwtTokenProvider.createToken("google_456") } returns "access-2"
         coEvery { jwtTokenProvider.createRefreshToken("google_456") } returns "refresh-2"
-        val response = controller.loginWithGoogle(request)
+        val response = controller.loginWithGoogle(request, null, null, null, null)
         assertEquals("access-2", response.body?.accessToken)
         assertEquals("refresh-2", response.body?.refreshToken)    }
 
     @Test
     fun `refresh token should be delegated to jwt provider`() = runBlocking {
         coEvery { jwtTokenProvider.refreshAccessToken("r") } returns "new-access"
-        val response = controller.refresh(RefreshTokenRequest("r"))
+        val response = controller.refresh(RefreshTokenRequest("r"), null, null, null, null)
         assertEquals("new-access", response.body?.accessToken)
     }
 
@@ -88,7 +88,7 @@ class AuthControllerTest {
     fun `unsupported providers should return standard exception`() = runBlocking {
         val ex = assertThrows(UnsupportedSocialProviderException::class.java) {
             runBlocking {
-                controller.loginWithApple(mapOf("idToken" to "x"))
+                controller.loginWithApple(mapOf("idToken" to "x"), null, null, null, null)
             }
         }
         assertEquals("Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in.", ex.message)

@@ -37,7 +37,7 @@ class UploadPresignControllerTest {
             )
         } returns expectedPayload
 
-        val response = controller.presignImageUpload(request)
+        val response = controller.presignImageUpload(request, null, null, null, null)
 
         assertEquals(expectedPayload, response.body)
     }
@@ -48,7 +48,7 @@ class UploadPresignControllerTest {
         every { storageService.generateChatMessageUploadKey(12L, "application/pdf") } throws IllegalArgumentException("Unsupported mime type: application/pdf")
 
         try {
-            controller.presignImageUpload(request)
+            controller.presignImageUpload(request, null, null, null, null)
             throw AssertionError("Expected IllegalArgumentException")
         } catch (ex: IllegalArgumentException) {
             assertEquals("Unsupported mime type: application/pdf", ex.message)

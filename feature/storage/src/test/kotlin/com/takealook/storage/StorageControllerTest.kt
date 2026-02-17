@@ -34,7 +34,11 @@ class StorageControllerTest {
         val response = controller.getUploadUrl(
             key = "chat/1/1700000000000.png",
             sizeBytes = 1000L,
-            contentType = "image/png"
+            contentType = "image/png",
+            userId = null,
+            forwardedFor = null,
+            realIp = null,
+            deviceId = null
         )
 
         assertEquals(HttpStatus.OK, response.statusCode)
