@@ -1,8 +1,6 @@
--- ========================================
--- Base domain model
--- ========================================
+-- Migration: add canonical domain tables for user/conversation/message/attachments
+-- Issue: #166
 
--- Authentication / profile users
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
@@ -23,9 +21,6 @@ CREATE TABLE IF NOT EXISTS user_profiles (
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ========================================
--- Canonical conversation model (new names)
--- ========================================
 CREATE TABLE IF NOT EXISTS conversations (
     id BIGSERIAL PRIMARY KEY,
     created_by_user_id BIGINT NOT NULL,
@@ -75,24 +70,12 @@ CREATE TABLE IF NOT EXISTS attachments (
       CHECK (kind IN ('image','video','file'))
 );
 
--- ========================================
--- Legacy app runtime tables (backward compatible runtime schema)
--- ========================================
-CREATE TABLE IF NOT EXISTS sticker_categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    thumbnail_url VARCHAR(1024) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS stickers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    icon_url VARCHAR(1024) NOT NULL,
-    thumbnail_url VARCHAR(1024) NOT NULL,
-    category_id INT NOT NULL,
-    CONSTRAINT fk_stickers_category
-      FOREIGN KEY (category_id) REFERENCES sticker_categories(id) ON DELETE RESTRICT
-);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
+CREATE INDEX IF NOT EXISTS idx_users_toss_user_key ON users (toss_user_key);
+CREATE INDEX IF NOT EXISTS idx_conversations_created_by_user ON conversations (created_by_user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created_desc ON messages (conversation_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_created_desc ON messages (sender_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments (message_id);
 
 CREATE TABLE IF NOT EXISTS chat_rooms (
     id SERIAL PRIMARY KEY,
@@ -158,18 +141,6 @@ CREATE TABLE IF NOT EXISTS chat_message_reports (
     CONSTRAINT uq_chat_message_reports
       UNIQUE(message_id, reporter_user_id)
 );
-
--- ========================================
--- Performance indexes (list/query paths)
--- ========================================
-CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
-CREATE INDEX IF NOT EXISTS idx_users_toss_user_key ON users (toss_user_key);
-
-CREATE INDEX IF NOT EXISTS idx_conversations_created_by_user ON conversations (created_by_user_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_name ON conversations (name);
-CREATE INDEX IF NOT EXISTS idx_messages_conversation_created_desc ON messages (conversation_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_sender_created_desc ON messages (sender_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments (message_id);
 
 CREATE INDEX IF NOT EXISTS idx_chat_rooms_name ON chat_rooms (name);
 CREATE INDEX IF NOT EXISTS idx_chat_room_users_room ON chat_room_users (room_id);
