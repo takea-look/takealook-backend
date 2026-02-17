@@ -79,10 +79,7 @@ class ChatRestControllerTest {
         val claims = mockk<Claims>()
         every { claims.subject } returns "claims-user"
 
-        val response = controller.sendImageMessage(claims, roomId, ChatRestController.SendMessageRequest(
-            imageUrl = "https://cdn/img.png",
-            replyToId = 2L,
-        ))
+        val response = controller.sendImageMessage(claims, roomId, ChatRestController.SendMessageRequest(imageUrl = "https://cdn/img.png", replyToId = 2L), null, null, null)
 
         assertEquals(200, response.statusCode.value())
         assertEquals("https://cdn/img.png", response.body?.imageUrl)
@@ -97,7 +94,7 @@ class ChatRestControllerTest {
     @Test
     fun `send image message should return 401 when principal is invalid`() = runBlocking {
         val ex = assertThrows<ResponseStatusException> {
-            controller.sendImageMessage(123, 1L, ChatRestController.SendMessageRequest("https://cdn/img.png"))
+            controller.sendImageMessage(123, 1L, ChatRestController.SendMessageRequest("https://cdn/img.png"), null, null, null)
         }
         assertEquals(HttpStatus.UNAUTHORIZED, ex.statusCode)
     }
@@ -108,7 +105,7 @@ class ChatRestControllerTest {
         coEvery { getChatUsersByRoomIdUseCase(10L) } returns emptyList()
 
         val ex = assertThrows<ResponseStatusException> {
-            controller.sendImageMessage("u", 10L, ChatRestController.SendMessageRequest("https://cdn/img.png"))
+            controller.sendImageMessage("u", 10L, ChatRestController.SendMessageRequest("https://cdn/img.png"), null, null, null)
         }
         assertEquals(HttpStatus.FORBIDDEN, ex.statusCode)
         assertEquals("User is not a room member", ex.reason)

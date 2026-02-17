@@ -69,3 +69,4 @@
 - `ABUSE_CHAT_SEND_WINDOW_SECONDS` (default: `60`)
 - `ABUSE_UPLOAD_MAX_REQUESTS_PER_MINUTE` (default: `20`)
 - `ABUSE_UPLOAD_WINDOW_SECONDS` (default: `60`)
+- `TAKEALOOK` rate-limit abuse events metric: `takealook_abuse_rate_limited_total` (scope별 라벨: scope, endpoint)

@@ -86,7 +86,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<Void> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signin")
-        rateLimitOrNull(identity, "signin")?.let { return it }
+        rateLimitOrNull<Void>(identity, "signin")?.let { return it }
         recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
             "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
@@ -106,7 +106,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<Void> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signup")
-        rateLimitOrNull(identity, "signup")?.let { return it }
+        rateLimitOrNull<Void>(identity, "signup")?.let { return it }
         recordAuthEvent("password", "deprecated")
         throw AuthFlowDeprecatedException(
             "username/password signup is deprecated. Use SNS onboarding flow managed by provider."
@@ -126,7 +126,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "google")
-        rateLimitOrNull(identity, "google")?.let { return it }
+        rateLimitOrNull<LoginResponse>(identity, "google")?.let { return it }
 
         return try {
             val tokenInfo = googleAuthService.verifyIdToken(request.idToken)
@@ -165,7 +165,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "apple")
-        rateLimitOrNull(identity, "apple")?.let { return it }
+        rateLimitOrNull<LoginResponse>(identity, "apple")?.let { return it }
         recordAuthEvent("apple", "unsupported")
         throw UnsupportedSocialProviderException(
             "Apple provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
@@ -185,7 +185,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "kakao")
-        rateLimitOrNull(identity, "kakao")?.let { return it }
+        rateLimitOrNull<LoginResponse>(identity, "kakao")?.let { return it }
         recordAuthEvent("kakao", "unsupported")
         throw UnsupportedSocialProviderException(
             "Kakao provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
@@ -205,7 +205,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "refresh")
-        rateLimitOrNull(identity, "refresh")?.let { return it }
+        rateLimitOrNull<LoginResponse>(identity, "refresh")?.let { return it }
 
         return try {
             val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
@@ -229,7 +229,7 @@ class AuthController(
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
     ): ResponseEntity<Map<String, String>> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "session")
-        rateLimitOrNull(identity, "session")?.let { return it }
+        rateLimitOrNull<Map<String, String>>(identity, "session")?.let { return it }
         return try {
             val accessToken = token.removePrefix("Bearer ").trim()
             if (!jwtTokenProvider.isTokenValid(accessToken)) {
