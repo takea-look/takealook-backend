@@ -21,6 +21,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatusCode
 
 class ChatControllerIntegrationTest {
@@ -73,14 +74,16 @@ class ChatControllerIntegrationTest {
             replyToId = 2L,
         )
 
-        val response = controller.sendImageMessage(
-            principal = claims,
-            roomId = roomId,
-            body = request,
-            forwardedFor = null,
-            realIp = null,
-            deviceId = null,
-        )
+        val response = runBlocking {
+            controller.sendImageMessage(
+                principal = claims,
+                roomId = roomId,
+                body = request,
+                forwardedFor = null,
+                realIp = null,
+                deviceId = null,
+            )
+        }
 
         assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
         assertEquals(123L, response.body?.messageId)
@@ -92,7 +95,9 @@ class ChatControllerIntegrationTest {
         val expected = listOf<UserChatMessage>()
         coEvery { getChatMessagesUseCase(1L, 20, 1000L, 10L) } returns expected
 
-        val response = controller.getMessagesByRoomId(roomId = 1L, limit = 20, before = 1000L, beforeMessageId = 10L)
+        val response = runBlocking {
+            controller.getMessagesByRoomId(roomId = 1L, limit = 20, before = 1000L, beforeMessageId = 10L)
+        }
 
         assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
         assertEquals(expected, response.body)
