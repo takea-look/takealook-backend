@@ -70,3 +70,21 @@
 - `ABUSE_UPLOAD_MAX_REQUESTS_PER_MINUTE` (default: `20`)
 - `ABUSE_UPLOAD_WINDOW_SECONDS` (default: `60`)
 - `TAKEALOOK` rate-limit abuse events metric: `takealook_abuse_rate_limited_total` (scope별 라벨: scope, endpoint)
+
+## 테스트(Integration)
+
+### 이슈 #164: 인증/업로드/채팅 임계 경로 통합 테스트
+
+- 실행 전 필수 항목
+  - JDK 21, Gradle 8+ 사용
+  - 로컬에서 기본 테스트 환경 변수 미지정 시 기본값 사용
+
+- 실행 명령
+  ```bash
+  ./gradlew :feature:auth:test :feature:storage:test :feature:chat:test
+  ```
+
+- 테스트 범위
+  - `/auth/google/signin` OAuth success/failure
+  - `/storage/upload`, `/uploads/presign` 이미지 업로드 흐름
+  - `/chat/rooms/{roomId}/messages` 전송/조회
