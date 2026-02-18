@@ -39,3 +39,11 @@
 - [ ] R2 bucket public access 또는 proxy route 설정
 - [ ] Response headers(Cache-Control/ETag) 적용 확인
 - [ ] 업로드 후 바로 접근/캐시 히트 확인
+
+## 업로드 키/Retention 보완 권고
+
+- 업로드 키는 기본 규칙 `chat/{roomId}/{epochMillis}.{ext}` 고정(오버라이트 방지)
+- 기본 보존은 채팅 정책 확정 전까지는 **90일 단위 버킷 정책**으로 시작
+- 동일 `roomId` 내 과부하 완화: 타임스탬프 기반 키는 파티션 분산에 유리
+- 규격상 민감 이미지 정책이 생기면 prefix 확장(`chat/private/{roomId}/...`) 또는 서명형 GET 전환
+
