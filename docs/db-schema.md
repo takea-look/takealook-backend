@@ -1,53 +1,72 @@
 # DB Schema (Prisma/ORM mapping baseline)
 
-## Goal
-이 파일은 `#166 BE: Database schema for users/conversations/messages` 이슈의 작업 산출물이며, `app/src/main/resources/schema.sql` 기준으로 정리한 관계/제약/인덱스 스냅샷입니다.
+> 출처: `app/src/main/resources/schema.sql` + `app/src/main/resources/db/migrations`
 
-## Entities
+이 문서는 runtime/도메인 모델 관점에서 **현재 기준 스키마(초안)**를 정리한다.
 
-- `users`
-  - PK: `id`
-  - Unique: `username`
-  - Fields: `username`, `password`, `toss_*`
-  - Relation: 부모(1)
+## 핵심 원칙
 
-- `conversations`
-  - PK: `id`
-  - FK: `created_by_user_id -> users.id`
-  - Fields: `name`, `is_public`, `max_participants`, `created_at`
-  - Relation: `users(1) : conversations(N)`
+- `app/src/main/resources/schema.sql`가 논리적 기준 DDL이다.
+- `app/src/main/resources/db/migrations`는 실제 적용 순서(bootstrap) 문서 기반으로 관리한다.
+- 향후 자동화 마이그레이션 도구(Flyway/Liquibase) 도입 시, 현재 순차 SQL을 기준 migration으로 이관한다.
 
-- `messages`
-  - PK: `id`
-  - FK: `conversation_id -> conversations.id`
-  - FK: `sender_id -> users.id`
-  - FK: `reply_to_id -> messages.id` (self-ref, `SET NULL`)
-  - Fields: `message_type`, `image_url`, `text_content`, `is_blinded`, `created_at`
-  - Constraint: `message_type IN ('CHAT','JOIN','LEAVE','REACTION')`
-  - Relation: `conversations(1) : messages(N)`, `users(1) : messages(N)`, `messages(1) : messages(N)`
+## Entities (핵심/런타임)
 
-- `attachments`
-  - PK: `id`
-  - FK: `message_id -> messages.id`
-  - FK: `uploaded_by_user_id -> users.id`
-  - Fields: `kind`, `file_url`, `file_name`, `mime_type`, `size_bytes`, `created_at`
-  - Relation: `messages(1) : attachments(N)`
+### 1) users
+- PK: `id BIGSERIAL`
+- Unique: `username`
+- fields: `username`, `password`, `toss_user_key`, `toss_name`, `toss_phone`, `toss_email`
+- Relation: 부모(1)
 
-### Existing runtime tables
+### 2) conversations
+- PK: `id BIGSERIAL`
+- FK: `created_by_user_id -> users.id`
+- fields: `name`, `is_public`, `max_participants`, `created_at`
+- Relation: `users(1) : conversations(N)`
 
+### 3) messages
+- PK: `id BIGSERIAL`
+- FK: `conversation_id -> conversations.id`, `sender_id -> users.id`, `reply_to_id -> messages.id (SET NULL)`
+- fields: `message_type`, `image_url`, `text_content`, `is_blinded`, `created_at`
+- constraints: `message_type IN ('CHAT','JOIN','LEAVE','REACTION')`
+- Relation: `conversations(1) : messages(N)`, `users(1) : messages(N)`
+
+### 4) attachments
+- PK: `id BIGSERIAL`
+- FK: `message_id -> messages.id`, `uploaded_by_user_id -> users.id`
+- fields: `kind`, `file_url`, `file_name`, `mime_type`, `size_bytes`, `created_at`
+- constraints: `kind IN ('image','video','file')`, `size_bytes >= 0`
+
+### 5) user_profiles
+- PK/FK: `user_id -> users.id`
+- fields: `username`, `nickname`, `image_url`, `updated_at`
+
+### 런타임 채팅 테이블 (현 운영 테이블)
 - `chat_rooms`, `chat_messages`, `chat_room_users`, `chat_message_reactions`, `chat_message_reports`
-  - 이슈 해결 범위 밖이지만 채팅 런타임에서 즉시 사용되고 있으므로 기존 모델은 유지
-  - FK 강화 및 조회성능 인덱스만 보강
+- 기능 연동상 필요하므로 유지됨(향후 정식 정규화 마이그레이션 시점에서 교체)
 
 ## 인덱스
 
+- `users`: `username` unique, `toss_user_key`
 - `conversations`: `created_by_user_id`
 - `messages`: `(conversation_id, created_at DESC)`, `(sender_id, created_at DESC)`
 - `attachments`: `message_id`
-- `chat_rooms/messages/users/...`: 기존 조회 패턴 기준 인덱스 추가
-  - `chat_messages(room_id, created_at DESC)`, `chat_room_users(room_id)`, `chat_room_users(user_id)` 등
+- `chat_rooms`: `name`
+- `chat_room_users`: `room_id`, `user_id`
+- `chat_messages`: `(room_id, created_at DESC)`, `(sender_id, created_at DESC)`
+- `chat_message_reactions`: `message_id`
+- `chat_message_reports`: `message_id`, `reporter_user_id`
 
-## 적용
+## Migration Baseline
 
-- 스키마 엔트리 포인트: `app/src/main/resources/schema.sql`
-- `migrations` 폴더는 추후 Flyway/R2DBC Migration 도입 시 `db/migration`로 이관 예정
+- 초기 마이그레이션 파일은 `app/src/main/resources/db/migrations` 에서 관리한다.
+- 현재 실행 순서:
+  1. `V001__users_conversations_messages_schema.sql`
+  2. `V002__initial_seed.sql`
+- 정합/롤백/이행 체크는 `docs/ops/db-migration-baseline.md` 참고.
+
+## 운영 가이드
+
+- 신규 릴리스 이전: 스키마 변경 시 `V###__name.sql` 추가 + `schema.sql` 동기화
+- 코드 수정 시 테이블명/컬럼명 변경이 있으면 `docs/db-schema.md`와 엔티티/레포지토리 쿼리 동시 업데이트
+- CI에서 Drift는 `docs/ops/db-migration-baseline.md`의 체크 플로우로 검증

@@ -37,9 +37,22 @@ CREATE DATABASE takealook;
 GRANT ALL PRIVILEGES ON DATABASE takealook TO admin;
 ```
 
-### 2. DDL 입력
-본 프로젝트는 webflux + r2dbc 기반의 프로젝트이고 JPA같은 ORM이 없습니다. 그렇기에 ddl을 직접 입력해주어야합니다.  
-[schema.sql](https://github.com/takea-look/takealook-backend/blob/main/app/src/main/resources/schema.sql)을 실행해주시면됩니다.
+### 2. DB Bootstrap
+본 프로젝트는 webflux + r2dbc 기반이라 ORM auto-ddl에 의존하지 않습니다.
+
+1. schema 스냅샷 실행:
+```bash
+psql "postgresql://tkladmin:tklpass@localhost/takealook" -v ON_ERROR_STOP=1 \
+  -f app/src/main/resources/db/migrations/V001__users_conversations_messages_schema.sql
+```
+
+2. seed 적용(권장):
+```bash
+psql "postgresql://tkladmin:tklpass@localhost/takealook" -v ON_ERROR_STOP=1 \
+  -f app/src/main/resources/db/migrations/V002__initial_seed.sql
+```
+
+자세한 drift/rollback/체크 규칙은 [docs/ops/db-migration-baseline.md](./docs/ops/db-migration-baseline.md) 참고.
 
 ### 3. Redis 실행 (로컬 개발)
 WebSocket 채팅 인증을 위해 Redis가 필요합니다:
@@ -109,6 +122,6 @@ VS Code에서 사용할 때:
 - `kotlin-language-server` 바이너리를 위 명령으로 설치한 뒤 IDE 재시작
 
 ## Documentation
-
+- [DB Migration Baseline](./docs/ops/db-migration-baseline.md)
 - [WebSocket 티켓 인증 시스템](./docs/architecture/websocket-authentication.md)
 - [WebSocket 채팅 연결 가이드](./docs/api/websocket-chat.md)
