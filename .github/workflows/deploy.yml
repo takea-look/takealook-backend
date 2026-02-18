@@ -29,20 +29,17 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           DEPLOY_TAG="main"
 
-          IMAGE_TAGS=$(cat <<'EOF'
-          tklcat/takealook-backend:main
-          tklcat/takealook-backend:sha-${SHORT_SHA}
-          EOF)
+          newline=$'\n'
+          IMAGE_TAGS="tklcat/takealook-backend:main${newline}tklcat/takealook-backend:sha-${SHORT_SHA}"
 
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            IMAGE_TAGS="${IMAGE_TAGS}
-tklcat/takealook-backend:${GITHUB_REF_NAME}"
+            IMAGE_TAGS="${IMAGE_TAGS}${newline}tklcat/takealook-backend:${GITHUB_REF_NAME}"
             DEPLOY_TAG="${GITHUB_REF_NAME}"
           fi
 
           {
             echo "tags<<EOF"
-            echo "$IMAGE_TAGS"
+            echo -e "$IMAGE_TAGS"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
           echo "deploy_tag=${DEPLOY_TAG}" >> "$GITHUB_OUTPUT"
