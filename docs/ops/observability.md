@@ -25,6 +25,12 @@
   - `takealook_ws_connections_total`
   - `takealook_ws_rate_limited_total`
 
+## Rate Limiting 권고(초기)
+
+- 5분 윈도우 `429` 비율(총량 대비)이 급증하면 알람을 올림 (`takealook_abuse_rate_limited_total` 기준).
+- auth/로그인 실패 급증 시 임계치 알림을 별도 분리해 브루트포스 징후를 조기 탐지.
+- 상세 기준은 `docs/ops/rate-limiting.md` 참고.
+
 ## 로컬에서 로그 확인
 - 애플리케이션 콘솔 로그: `%request` 패턴에 `rid`/`user` 포함
 - WebSocket 로그: 핸드셰이크 및 세션별 종료 로그에 `rid`/`user` 태그가 표시됩니다.
