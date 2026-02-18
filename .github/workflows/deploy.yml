@@ -29,12 +29,14 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           DEPLOY_TAG="main"
 
-          # Always keep rolling tags for main branch builds
-          IMAGE_TAGS="tklcat/takealook-backend:main\ntklcat/takealook-backend:sha-${SHORT_SHA}"
+          IMAGE_TAGS=$(cat <<'EOF'
+          tklcat/takealook-backend:main
+          tklcat/takealook-backend:sha-${SHORT_SHA}
+          EOF)
 
-          # If this is a git tag push, also publish the semantic-release tag and deploy it.
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            IMAGE_TAGS="${IMAGE_TAGS}\ntklcat/takealook-backend:${GITHUB_REF_NAME}"
+            IMAGE_TAGS="${IMAGE_TAGS}
+tklcat/takealook-backend:${GITHUB_REF_NAME}"
             DEPLOY_TAG="${GITHUB_REF_NAME}"
           fi
 
@@ -54,6 +56,7 @@ jobs:
           platforms: linux/arm64
           tags: |
             ${{ steps.image.outputs.tags }}
+          # Keep this as multiline string for docker/build-push-action
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
