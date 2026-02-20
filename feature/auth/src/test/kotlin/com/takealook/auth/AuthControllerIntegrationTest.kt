@@ -5,6 +5,7 @@ import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
+import com.takealook.auth.component.TossAuthService
 import com.takealook.model.auth.GoogleTokenInfo
 import com.takealook.model.auth.RefreshTokenRequest
 import io.micrometer.core.instrument.MeterRegistry
@@ -22,6 +23,7 @@ class AuthControllerIntegrationTest {
     private val saveUserUseCase = mockk<SaveUserUseCase>(relaxed = true)
     private val jwtTokenProvider = mockk<com.takealook.auth.component.JwtTokenProvider>()
     private val googleAuthService = mockk<com.takealook.auth.component.GoogleAuthService>()
+    private val tossAuthService = mockk<TossAuthService>()
     private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = AuthController(
@@ -29,6 +31,7 @@ class AuthControllerIntegrationTest {
         saveUserUseCase,
         jwtTokenProvider,
         googleAuthService,
+        tossAuthService,
         meterRegistry,
         120,
         60,
