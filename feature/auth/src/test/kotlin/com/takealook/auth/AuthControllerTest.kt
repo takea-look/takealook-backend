@@ -2,6 +2,7 @@ package com.takealook.auth
 
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
+import com.takealook.auth.component.TossAuthService
 import com.takealook.auth.exception.AuthFlowDeprecatedException
 import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.domain.user.GetUserByNameUseCase
@@ -10,6 +11,8 @@ import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.GoogleTokenInfo
 import com.takealook.model.auth.RefreshTokenRequest
+import com.takealook.model.auth.TossLoginRequest
+import com.takealook.model.auth.UserInfo
 import io.micrometer.core.instrument.MeterRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -25,6 +28,7 @@ class AuthControllerTest {
     private val saveUserUseCase = mockk<SaveUserUseCase>(relaxed = true)
     private val googleAuthService = mockk<GoogleAuthService>()
     private val jwtTokenProvider = mockk<JwtTokenProvider>()
+    private val tossAuthService = mockk<TossAuthService>()
     private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = AuthController(
@@ -32,6 +36,7 @@ class AuthControllerTest {
         saveUserUseCase,
         jwtTokenProvider,
         googleAuthService,
+        tossAuthService,
         meterRegistry,
         120,
         60,
@@ -75,13 +80,41 @@ class AuthControllerTest {
         coEvery { jwtTokenProvider.createRefreshToken("google_456") } returns "refresh-2"
         val response = controller.loginWithGoogle(request, null, null, null)
         assertEquals("access-2", response.body?.accessToken)
-        assertEquals("refresh-2", response.body?.refreshToken)    }
+        assertEquals("refresh-2", response.body?.refreshToken)
+    }
 
     @Test
     fun `refresh token should be delegated to jwt provider`() = runBlocking {
         coEvery { jwtTokenProvider.refreshAccessToken("r") } returns "new-access"
         val response = controller.refresh(RefreshTokenRequest("r"), null, null, null)
         assertEquals("new-access", response.body?.accessToken)
+    }
+
+    @Test
+    fun `toss signin should return access token and toss refresh token`() = runBlocking {
+        val request = TossLoginRequest(authorizationCode = "tc-123", referrer = "unit-test")
+        val userKey = 999L
+
+        coEvery { tossAuthService.exchangeToken("tc-123", "unit-test") } returns Pair("toss-access", "toss-refresh")
+        coEvery { tossAuthService.getUserInfo("toss-access") } returns UserInfo(
+            userKey = userKey,
+            scope = null,
+            agreedTerms = null,
+            policy = null,
+            certTxId = null,
+            name = "김토스",
+            phone = "010-0000-0000",
+            birthday = null,
+            gender = null,
+            nationality = null,
+            email = "toss@example.com",
+        )
+        coEvery { getUserByNameUseCase("toss_$userKey") } returns null
+        coEvery { jwtTokenProvider.createToken("toss_$userKey") } returns "internal-toss-token"
+
+        val response = controller.loginWithToss(request, null, null, null)
+        assertEquals("internal-toss-token", response.body?.accessToken)
+        assertEquals("toss-refresh", response.body?.refreshToken)
     }
 
     @Test
