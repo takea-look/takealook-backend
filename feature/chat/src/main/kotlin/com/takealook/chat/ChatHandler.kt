@@ -221,8 +221,13 @@ class ChatHandler(
             return Result.failure(IllegalArgumentException("Invalid JWT token"))
         }
 
-        val principal = jwtTokenProvider.getAuthentication(token).principal
-        val username = principal as? String ?: return Result.failure(IllegalArgumentException("Invalid token principal"))
+        val authenticationPrincipal = jwtTokenProvider.getAuthentication(token).principal
+        val username = when (authenticationPrincipal) {
+            is io.jsonwebtoken.Claims -> authenticationPrincipal.subject
+            is String -> authenticationPrincipal
+            else -> return Result.failure(IllegalArgumentException("Invalid token principal"))
+        }
+
         val user = getUserByNameUseCase(username) ?: return Result.failure(IllegalArgumentException("User not found"))
         val userId = user.id ?: return Result.failure(IllegalArgumentException("User id missing"))
 
