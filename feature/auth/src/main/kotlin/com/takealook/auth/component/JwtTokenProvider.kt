@@ -55,9 +55,9 @@ class JwtTokenProvider(
     fun getAuthentication(token: String): Authentication {
         val claims = getParsedClaims(token)
 
-        val username = claims.payload.subject
+        val principal = claims.payload
         return UsernamePasswordAuthenticationToken(
-            username,
+            principal,
             token,
             emptyList()
         )
