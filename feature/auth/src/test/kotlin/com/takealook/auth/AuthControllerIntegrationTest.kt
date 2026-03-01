@@ -1,11 +1,10 @@
 package com.takealook.auth
 
-import com.takealook.auth.exception.AuthFlowDeprecatedException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
 import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
-import com.takealook.auth.component.TossAuthService
+import com.takealook.model.auth.LoginRequest
 import com.takealook.model.auth.GoogleTokenInfo
 import com.takealook.model.auth.RefreshTokenRequest
 import io.micrometer.core.instrument.MeterRegistry
@@ -23,7 +22,6 @@ class AuthControllerIntegrationTest {
     private val saveUserUseCase = mockk<SaveUserUseCase>(relaxed = true)
     private val jwtTokenProvider = mockk<com.takealook.auth.component.JwtTokenProvider>()
     private val googleAuthService = mockk<com.takealook.auth.component.GoogleAuthService>()
-    private val tossAuthService = mockk<TossAuthService>()
     private val meterRegistry = mockk<MeterRegistry>(relaxed = true)
 
     private val controller = AuthController(
@@ -31,7 +29,6 @@ class AuthControllerIntegrationTest {
         saveUserUseCase,
         jwtTokenProvider,
         googleAuthService,
-        tossAuthService,
         meterRegistry,
         120,
         60,
@@ -71,14 +68,20 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    fun `legacy signin should throw deprecated flow exception`() {
-        val response = runCatching {
-            runBlocking {
-                controller.deprecatedSignIn(mapOf("username" to "u", "password" to "p"), null, null, null)
-            }
+    fun `legacy signin should return token for valid credentials`() {
+        val request = LoginRequest(username = "u", password = "p")
+
+        coEvery { getUserByNameUseCase("u") } returns User(id = 1L, username = "u", password = "p")
+        coEvery { jwtTokenProvider.createToken("u") } returns "access-token"
+        coEvery { jwtTokenProvider.createRefreshToken("u") } returns "refresh-token"
+
+        val response = runBlocking {
+            controller.legacySignIn(request, null, null, null)
         }
 
-        assertEquals(true, response.exceptionOrNull() is AuthFlowDeprecatedException)
+        assertEquals(HttpStatusCode.valueOf(200), response.statusCode)
+        assertEquals("access-token", response.body?.accessToken)
+        assertEquals("refresh-token", response.body?.refreshToken)
     }
 
     @Test
