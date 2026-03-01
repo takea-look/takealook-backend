@@ -1,21 +1,18 @@
 package com.takealook.auth
 
-import com.takealook.auth.exception.AuthFlowDeprecatedException
 import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
+import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
-import com.takealook.auth.component.TossAuthService
 import com.takealook.domain.limiter.AbuseRateLimiter
-import com.takealook.model.User
 import com.takealook.model.auth.GoogleLoginRequest
 import com.takealook.model.auth.LoginResponse
 import com.takealook.model.auth.RefreshTokenRequest
-import com.takealook.model.auth.TossLoginRequest
-import com.takealook.model.auth.UserInfo
-import com.takealook.model.auth.LogoutByUserKeyRequest
 import com.takealook.domain.exceptions.InvalidCredentialsException
+import com.takealook.model.User
+import com.takealook.model.auth.LoginRequest
 import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -38,7 +35,6 @@ class AuthController(
     private val saveUserUseCase: SaveUserUseCase,
     private val jwtTokenProvider: JwtTokenProvider,
     private val googleAuthService: GoogleAuthService,
-    private val tossAuthService: TossAuthService,
     private val meterRegistry: MeterRegistry,
     @Value("\${abuse.auth.max-requests-per-minute:30}") private val maxAuthRequestsPerMinute: Int,
     @Value("\${abuse.auth.window-seconds:60}") private val authWindowSeconds: Long,
@@ -62,14 +58,14 @@ class AuthController(
             ?: "unknown-ip"
         val device = xDeviceId?.trim()?.takeIf { it.isNotBlank() }
             ?: "unknown-device"
-        return "${endpoint}:${ip}:${device}"
+        return "${'$'}endpoint:${'$'}ip:${'$'}device"
     }
 
     private fun <T> rateLimitOrNull(identity: String, endpoint: String): ResponseEntity<T>? {
         if (!authRateLimiter.canProceed(identity)) {
             val retryAfterMs = authRateLimiter.retryAfterMillis(identity)
             val retryAfterSeconds = (retryAfterMs / 1000) + 1
-            logger.warn("Rate limit exceeded. identity=$identity endpoint=$endpoint retryAfter=${retryAfterSeconds} s")
+            logger.warn("Rate limit exceeded. identity=$identity endpoint=$endpoint retryAfter=${'$'}retryAfterSeconds s")
             meterRegistry.counter("takealook_abuse_rate_limited_total", "scope", "auth", "endpoint", endpoint).increment()
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", retryAfterSeconds.toString())
@@ -79,43 +75,73 @@ class AuthController(
     }
 
     @Operation(
-        summary = "구버전 로그인(비권장)",
-        description = "과거 호환용 username/password 로그인은 비활성화되었습니다.",
-        deprecated = true,
+        summary = "Username/Password 로그인(legacy 호환)",
+        description = "과거 클라이언트 호환용 로그인 API. username/password 기반 인증을 수행합니다.",
     )
     @PostMapping("/signin")
-    suspend fun deprecatedSignIn(
-        @RequestBody body: Map<String, String>,
+    suspend fun legacySignIn(
+        @RequestBody request: LoginRequest,
         @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
         @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signin")
-        rateLimitOrNull<Void>(identity, "signin")?.let { return it }
-        recordAuthEvent("password", "deprecated")
-        throw AuthFlowDeprecatedException(
-            "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
-        )
+        rateLimitOrNull<LoginResponse>(identity, "signin")?.let { return it }
+
+        return try {
+            val user = getUserByNameUseCase(request.username)
+                ?: throw InvalidCredentialsException("Invalid username or password")
+
+            if (user.password != request.password) {
+                throw InvalidCredentialsException("Invalid username or password")
+            }
+
+            val accessToken = jwtTokenProvider.createToken(user.username)
+            val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
+
+            recordAuthEvent("password", "success")
+            ResponseEntity.ok(LoginResponse(accessToken, refreshToken))
+        } catch (ex: Exception) {
+            recordAuthEvent("password", "error")
+            throw ex
+        }
     }
 
     @Operation(
-        summary = "구버전 회원가입(비권장)",
-        description = "과거 호환용 username/password 회원가입은 비활성화되었습니다.",
-        deprecated = true,
+        summary = "Username/Password 회원가입(legacy 호환)",
+        description = "과거 클라이언트 호환용 회원가입 API. 중복 계정일 경우 USER_ALREADY_EXISTS(409)를 반환합니다.",
     )
     @PostMapping("/signup")
-    suspend fun deprecatedSignUp(
-        @RequestBody body: Map<String, String>,
+    suspend fun legacySignUp(
+        @RequestBody request: LoginRequest,
         @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
         @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signup")
-        rateLimitOrNull<Void>(identity, "signup")?.let { return it }
-        recordAuthEvent("password", "deprecated")
-        throw AuthFlowDeprecatedException(
-            "username/password signup is deprecated. Use SNS onboarding flow managed by provider."
-        )
+        rateLimitOrNull<LoginResponse>(identity, "signup")?.let { return it }
+
+        return try {
+            val existingUser = getUserByNameUseCase(request.username)
+            if (existingUser != null) {
+                throw UserAlreadyExistsException("User already exists")
+            }
+
+            val user = User(
+                username = request.username,
+                password = request.password,
+            )
+            saveUserUseCase(user)
+
+            val accessToken = jwtTokenProvider.createToken(request.username)
+            val refreshToken = jwtTokenProvider.createRefreshToken(request.username)
+
+            recordAuthEvent("password", "success")
+            ResponseEntity.ok(LoginResponse(accessToken, refreshToken))
+        } catch (ex: Exception) {
+            recordAuthEvent("password", "error")
+            throw ex
+        }
     }
 
     @Operation(
@@ -158,55 +184,6 @@ class AuthController(
     }
 
     @Operation(
-        summary = "토스 로그인",
-        description = "토스 앱에서 받은 authorizationCode로 로그인합니다.",
-        security = []
-    )
-    @PostMapping("/toss/signin")
-    suspend fun loginWithToss(
-        @RequestBody request: TossLoginRequest,
-        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
-        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
-        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<LoginResponse> {
-        val identity = buildIdentity(forwardedFor, realIp, deviceId, "toss_signin")
-        rateLimitOrNull<LoginResponse>(identity, "toss_signin")?.let { return it }
-
-        val (tossAccessToken, tossRefreshToken) = tossAuthService.exchangeToken(
-            request.authorizationCode,
-            request.referrer,
-        )
-
-        val tossUserInfo = tossAuthService.getUserInfo(tossAccessToken)
-        val internalUsername = "toss_${tossUserInfo.userKey}"
-
-        var user = getUserByNameUseCase(internalUsername)
-        if (user == null) {
-            val randomPassword = java.util.UUID.randomUUID().toString()
-            user = User(
-                username = internalUsername,
-                password = randomPassword,
-                tossUserKey = tossUserInfo.userKey,
-                tossName = tossUserInfo.name,
-                tossPhone = tossUserInfo.phone,
-                tossEmail = tossUserInfo.email,
-            )
-            saveUserUseCase(user)
-        } else {
-            user = user.copy(
-                tossName = tossUserInfo.name,
-                tossPhone = tossUserInfo.phone,
-                tossEmail = tossUserInfo.email,
-            )
-            saveUserUseCase(user)
-        }
-
-        val accessToken = jwtTokenProvider.createToken(user.username)
-        recordAuthEvent("toss", "success")
-        return ResponseEntity.ok(LoginResponse(accessToken, tossRefreshToken))
-    }
-
-    @Operation(
         summary = "Apple 로그인",
         description = "Apple OAuth 로그인. (현재 MVP: 미지원 - 내부 활성화 요청 필요)",
         security = []
@@ -244,76 +221,6 @@ class AuthController(
         throw UnsupportedSocialProviderException(
             "Kakao provider is planned. Current MVP supported provider: google. Use /auth/google/signin for sign-in."
         )
-    }
-
-    @Operation(
-        summary = "토스 로그인 - 토큰 재발급",
-        description = "Refresh token으로 access token을 재발급합니다.",
-        security = []
-    )
-    @PostMapping("/toss/refresh")
-    suspend fun refreshTossToken(
-        @RequestBody request: RefreshTokenRequest,
-        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
-        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
-        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<LoginResponse> {
-        val identity = buildIdentity(forwardedFor, realIp, deviceId, "toss_refresh")
-        rateLimitOrNull<LoginResponse>(identity, "toss_refresh")?.let { return it }
-        recordAuthEvent("toss_refresh", "success")
-        val newAccessToken = tossAuthService.refreshAccessToken(request.refreshToken)
-        return ResponseEntity.ok(LoginResponse(newAccessToken))
-    }
-
-    @Operation(
-        summary = "토스 사용자 정보 조회",
-        description = "Toss access token으로 사용자 정보를 조회합니다.",
-    )
-    @GetMapping("/toss/userinfo")
-    suspend fun getTossUserInfo(
-        @RequestHeader("accessToken") accessToken: String,
-        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
-        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
-        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<UserInfo> {
-        val identity = buildIdentity(forwardedFor, realIp, deviceId, "toss_userinfo")
-        rateLimitOrNull<UserInfo>(identity, "toss_userinfo")?.let { return it }
-        return ResponseEntity.ok(tossAuthService.getUserInfo(accessToken))
-    }
-
-    @Operation(
-        summary = "토스 로그아웃 (Access Token)",
-        description = "Access token으로 로그아웃합니다.",
-    )
-    @PostMapping("/toss/logout")
-    suspend fun logoutByAccessToken(
-        @RequestHeader("accessToken") accessToken: String,
-        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
-        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
-        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
-        val identity = buildIdentity(forwardedFor, realIp, deviceId, "toss_logout")
-        rateLimitOrNull<Void>(identity, "toss_logout")?.let { return it }
-        tossAuthService.logoutByAccessToken(accessToken)
-        return ResponseEntity.ok().build()
-    }
-
-    @Operation(
-        summary = "토스 로그아웃 (User Key)",
-        description = "User key로 로그아웃합니다.",
-        security = []
-    )
-    @PostMapping("/toss/logout/user-key")
-    suspend fun logoutByUserKey(
-        @RequestBody request: LogoutByUserKeyRequest,
-        @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
-        @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
-        @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
-        val identity = buildIdentity(forwardedFor, realIp, deviceId, "toss_logout_user_key")
-        rateLimitOrNull<Void>(identity, "toss_logout_user_key")?.let { return it }
-        tossAuthService.logoutByUserKey(request.userKey)
-        return ResponseEntity.ok().build()
     }
 
     @Operation(
