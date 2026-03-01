@@ -1,9 +1,9 @@
 package com.takealook.auth
 
-import com.takealook.auth.exception.AuthFlowDeprecatedException
 import com.takealook.auth.exception.UnsupportedSocialProviderException
 import com.takealook.domain.user.GetUserByNameUseCase
 import com.takealook.domain.user.SaveUserUseCase
+import com.takealook.domain.exceptions.UserAlreadyExistsException
 import com.takealook.auth.component.GoogleAuthService
 import com.takealook.auth.component.JwtTokenProvider
 import com.takealook.domain.limiter.AbuseRateLimiter
@@ -12,6 +12,7 @@ import com.takealook.model.auth.LoginResponse
 import com.takealook.model.auth.RefreshTokenRequest
 import com.takealook.domain.exceptions.InvalidCredentialsException
 import com.takealook.model.User
+import com.takealook.model.auth.LoginRequest
 import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -74,43 +75,73 @@ class AuthController(
     }
 
     @Operation(
-        summary = "구버전 로그인(비권장)",
-        description = "과거 호환용 username/password 로그인은 비활성화되었습니다.",
-        deprecated = true,
+        summary = "Username/Password 로그인(legacy 호환)",
+        description = "과거 클라이언트 호환용 로그인 API. username/password 기반 인증을 수행합니다.",
     )
     @PostMapping("/signin")
-    suspend fun deprecatedSignIn(
-        @RequestBody body: Map<String, String>,
+    suspend fun legacySignIn(
+        @RequestBody request: LoginRequest,
         @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
         @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signin")
-        rateLimitOrNull<Void>(identity, "signin")?.let { return it }
-        recordAuthEvent("password", "deprecated")
-        throw AuthFlowDeprecatedException(
-            "password login is deprecated. Use SNS login endpoint: /auth/google/signin, /auth/kakao/signin, /auth/apple/signin"
-        )
+        rateLimitOrNull<LoginResponse>(identity, "signin")?.let { return it }
+
+        return try {
+            val user = getUserByNameUseCase(request.username)
+                ?: throw InvalidCredentialsException("Invalid username or password")
+
+            if (user.password != request.password) {
+                throw InvalidCredentialsException("Invalid username or password")
+            }
+
+            val accessToken = jwtTokenProvider.createToken(user.username)
+            val refreshToken = jwtTokenProvider.createRefreshToken(user.username)
+
+            recordAuthEvent("password", "success")
+            ResponseEntity.ok(LoginResponse(accessToken, refreshToken))
+        } catch (ex: Exception) {
+            recordAuthEvent("password", "error")
+            throw ex
+        }
     }
 
     @Operation(
-        summary = "구버전 회원가입(비권장)",
-        description = "과거 호환용 username/password 회원가입은 비활성화되었습니다.",
-        deprecated = true,
+        summary = "Username/Password 회원가입(legacy 호환)",
+        description = "과거 클라이언트 호환용 회원가입 API. 중복 계정일 경우 USER_ALREADY_EXISTS(409)를 반환합니다.",
     )
     @PostMapping("/signup")
-    suspend fun deprecatedSignUp(
-        @RequestBody body: Map<String, String>,
+    suspend fun legacySignUp(
+        @RequestBody request: LoginRequest,
         @RequestHeader(value = "X-Forwarded-For", required = false) forwardedFor: String?,
         @RequestHeader(value = "X-Real-IP", required = false) realIp: String?,
         @RequestHeader(value = "X-Device-Id", required = false) deviceId: String?,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<LoginResponse> {
         val identity = buildIdentity(forwardedFor, realIp, deviceId, "signup")
-        rateLimitOrNull<Void>(identity, "signup")?.let { return it }
-        recordAuthEvent("password", "deprecated")
-        throw AuthFlowDeprecatedException(
-            "username/password signup is deprecated. Use SNS onboarding flow managed by provider."
-        )
+        rateLimitOrNull<LoginResponse>(identity, "signup")?.let { return it }
+
+        return try {
+            val existingUser = getUserByNameUseCase(request.username)
+            if (existingUser != null) {
+                throw UserAlreadyExistsException("User already exists")
+            }
+
+            val user = User(
+                username = request.username,
+                password = request.password,
+            )
+            saveUserUseCase(user)
+
+            val accessToken = jwtTokenProvider.createToken(request.username)
+            val refreshToken = jwtTokenProvider.createRefreshToken(request.username)
+
+            recordAuthEvent("password", "success")
+            ResponseEntity.ok(LoginResponse(accessToken, refreshToken))
+        } catch (ex: Exception) {
+            recordAuthEvent("password", "error")
+            throw ex
+        }
     }
 
     @Operation(
